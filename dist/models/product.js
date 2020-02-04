@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var fs_1 = __importDefault(require("fs"));
 var path_1 = __importDefault(require("path"));
+var crypto_1 = __importDefault(require("crypto"));
 // https://stackoverflow.com/questions/40349987/how-to-suppress-error-ts2533-object-is-possibly-null-or-undefined
 // Using "!" syntax
 // Alternatively: (process.mainModule as NodeModule).filename
@@ -25,6 +26,7 @@ var Product = /** @class */ (function () {
         this.imageURL = imageURL;
         this.description = description;
         this.price = price;
+        this.id = crypto_1.default.randomBytes(16).toString("hex");
     }
     Product.prototype.save = function () {
         var _this = this;
@@ -39,6 +41,17 @@ var Product = /** @class */ (function () {
     };
     Product.fetchAll = function (cb) {
         getProductsFromFile(cb);
+    };
+    Product.findByID = function (id, cb) {
+        getProductsFromFile(function (products) {
+            var product = products.find(function (p) { return p.id === id; });
+            if (product !== undefined) {
+                cb(product);
+            }
+            else {
+                throw console.error("Product with ID " + id + " not found!");
+            }
+        });
     };
     return Product;
 }());

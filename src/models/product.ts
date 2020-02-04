@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { DESTRUCTION } from "dns";
+import crypto from "crypto";
 
 // https://stackoverflow.com/questions/40349987/how-to-suppress-error-ts2533-object-is-possibly-null-or-undefined
 // Using "!" syntax
@@ -26,6 +26,7 @@ class Product {
   imageURL: string;
   description: string;
   price: number;
+  id: string;
 
   constructor(
     title: string,
@@ -37,6 +38,7 @@ class Product {
     this.imageURL = imageURL;
     this.description = description;
     this.price = price;
+    this.id = crypto.randomBytes(16).toString("hex");
   }
 
   save() {
@@ -52,6 +54,17 @@ class Product {
 
   static fetchAll(cb: (products: Product[]) => void) {
     getProductsFromFile(cb);
+  }
+
+  static findByID(id: string, cb: (products: Product) => void) {
+    getProductsFromFile(products => {
+      const product = products.find(p => p.id === id);
+      if (product !== undefined) {
+        cb(product);
+      } else {
+        throw console.error(`Product with ID ${id} not found!`);
+      }
+    });
   }
 }
 

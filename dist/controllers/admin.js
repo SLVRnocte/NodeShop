@@ -4,7 +4,7 @@ var product_1 = require("../models/product");
 var getAddProduct = function (req, res, next) {
     res.render("admin/add-product", {
         pageTitle: "Add Product",
-        path: "add-product"
+        path: "admin/add-product"
     });
 };
 exports.getAddProduct = getAddProduct;

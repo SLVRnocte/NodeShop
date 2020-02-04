@@ -5,7 +5,7 @@ import { Product } from "../models/product";
 const getAddProduct = (req: Request, res: Response, next: NextFunction) => {
   res.render("admin/add-product", {
     pageTitle: "Add Product",
-    path: "add-product"
+    path: "admin/add-product"
   });
 };
 
