@@ -1,16 +1,1 @@
-[
-  {
-    "title": "Some book",
-    "id": "235252532532532532",
-    "imageURL": "https://images-na.ssl-images-amazon.com/images/I/41fhsnzKEgL._SX258_BO1,204,203,200_.jpg",
-    "description": "it's ok",
-    "price": "0.09"
-  },
-  {
-    "title": "b0k ch0y",
-    "id": "3459401241201412",
-    "imageURL": "https://cdn3.volusion.com/kceqm.mleru/v/vspfiles/photos/502-2.jpg?v-cache=1570614825",
-    "description": "it's rotten",
-    "price": "1.05"
-  }
-]
+[{"title":"Some book","id":"235252532532532532","imageURL":"https://images-na.ssl-images-amazon.com/images/I/41fhsnzKEgL._SX258_BO1,204,203,200_.jpg","description":"it's ok","price":"0.09"},{"id":"3459401241201412","title":"b0k ch0y","imageURL":"https://cdn3.volusion.com/kceqm.mleru/v/vspfiles/photos/502-2.jpg?v-cache=1570614825","description":"it's rotten or something","price":"1.13"}]

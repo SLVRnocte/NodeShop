@@ -34,20 +34,44 @@ var getIndex = function (req, res, next) {
 };
 exports.getIndex = getIndex;
 var getCart = function (req, res, next) {
-    res.render("shop/cart", {
-        pageTitle: "Shopping Cart",
-        path: "cart"
+    cart_1.Cart.getCart(function (cart) {
+        product_1.Product.fetchAll(function (products) {
+            var cartProducts = [];
+            cart.forEach(function (cartProduct) {
+                var product = products.find(function (product) { return cartProduct.ProductID === product.id; });
+                if (product !== undefined) {
+                    cartProducts.push({
+                        product: product,
+                        quantity: cartProduct.Quantity
+                    });
+                }
+            });
+            res.render("shop/cart", {
+                pageTitle: "Shopping Cart",
+                path: "cart",
+                products: cartProducts
+            });
+        });
     });
 };
 exports.getCart = getCart;
 var postCart = function (req, res, next) {
     var productID = req.body.productID;
     product_1.Product.findByID(productID, function (product) {
-        cart_1.Cart.addProduct(productID);
+        cart_1.Cart.refreshCart(function () {
+            cart_1.Cart.addProduct(productID);
+        });
     });
     res.redirect("/cart");
 };
 exports.postCart = postCart;
+var postCartDeleteItem = function (req, res, next) {
+    var productID = req.body.productID;
+    cart_1.Cart.deleteProduct(productID, function () {
+        res.redirect("/cart");
+    });
+};
+exports.postCartDeleteItem = postCartDeleteItem;
 var getOrders = function (req, res, next) {
     res.render("shop/orders", {
         pageTitle: "Your Orders",
@@ -62,3 +86,4 @@ var getCheckout = function (req, res, next) {
     });
 };
 exports.getCheckout = getCheckout;
+//# sourceMappingURL=shop.js.map

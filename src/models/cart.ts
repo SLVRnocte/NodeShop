@@ -5,48 +5,70 @@ import path from "path";
 // https://stackoverflow.com/questions/40349987/how-to-suppress-error-ts2533-object-is-possibly-null-or-undefined
 // Using "!" syntax
 // Alternatively: (process.mainModule as NodeModule).filename
-const productsPath = path.join(
+const cartPath = path.join(
   path.dirname(process.mainModule!.filename),
   "data",
   "cart.json"
 );
 
 class Cart {
-  static products: [string, number][] = [];
-  static addProduct(productID: string) {
-    fs.readFile(productsPath, (err, fileContent) => {
-      //   let cart: { products: [string, number][], totalPrice: number } = {
-      //     products: [],
-      //     totalPrice: 0
-      //   };
+  private static cartProducts: { ProductID: string; Quantity: number }[] = [];
 
+  static refreshCart(cbDone: () => void) {
+    fs.readFile(cartPath, (err, fileContent) => {
       if (!err) {
-        // cart = JSON.parse(fileContent.toString());
-        this.products = JSON.parse(fileContent.toString());
+        this.cartProducts = JSON.parse(fileContent.toString());
       }
+      cbDone();
+    });
+  }
 
-      const cartProductIndex = this.products.findIndex(
-        product => product[0] === productID
-      );
-      const cartProduct = this.products[cartProductIndex];
-      if (cartProduct) {
-        this.products[cartProductIndex][1] =
-          this.products[cartProductIndex][1] + 1;
-      } else {
-        this.products.push([productID, 1]);
-      }
+  static getCart(
+    cbDone: (cart: { ProductID: string; Quantity: number }[]) => void
+  ) {
+    this.refreshCart(() => {
+      cbDone(this.cartProducts);
+    });
+    return [];
+  }
 
-      fs.writeFile(productsPath, JSON.stringify(this.products), err => {
+  static addProduct(productID: string) {
+    const cartProductIndex = this.cartProducts.findIndex(
+      product => product["ProductID"] === productID
+    );
+    const cartProduct = this.cartProducts[cartProductIndex];
+    if (cartProduct) {
+      this.cartProducts[cartProductIndex]["Quantity"] =
+        this.cartProducts[cartProductIndex]["Quantity"] + 1;
+    } else {
+      this.cartProducts.push({ ProductID: productID, Quantity: 1 });
+    }
+
+    fs.writeFile(cartPath, JSON.stringify(this.cartProducts), err => {
+      if (err) console.log(err);
+    });
+  }
+
+  static deleteProduct(id: string, cbDone: () => void) {
+    const updatedCartProducts = this.cartProducts.filter(
+      product => product.ProductID !== id
+    );
+
+    fs.writeFile(cartPath, JSON.stringify(updatedCartProducts), err => {
+      if (err) {
         console.log(err);
-      });
+      }
+      cbDone();
     });
   }
 
   static getTotalPrice() {
     let totalPrice = 0;
-    this.products.forEach(product => {
-      Product.findByID(product[0], product => {
-        totalPrice += product.price;
+    this.cartProducts.forEach(cartProduct => {
+      Product.findByID(cartProduct["ProductID"], product => {
+        for (let i = 0; i < cartProduct["Quantity"]; i++) {
+          totalPrice += product.price;
+        }
       });
     });
     return totalPrice;

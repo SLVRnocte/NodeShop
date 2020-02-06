@@ -11,6 +11,18 @@ router.get(`${adminURLPrefix}/products`, adminController.getProducts);
 
 router.post(`${adminURLPrefix}/add-product`, adminController.postAddProduct);
 
+router.get(
+  `${adminURLPrefix}/edit-product/:productID`,
+  adminController.getEditProduct
+);
+
+router.post(`${adminURLPrefix}/edit-product`, adminController.postEditProduct);
+
+router.post(
+  `${adminURLPrefix}/delete-product`,
+  adminController.postDeleteProduct
+);
+
 /*exports.routes = router;
 exports.products = products;*/
 export { router as routes };

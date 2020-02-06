@@ -19,6 +19,8 @@ router.get("/products/:productID", shopController.getProduct);
 router.get("/orders", shopController.getOrders);
 router.get("/cart", shopController.getCart);
 router.post("/cart", shopController.postCart);
+router.post("/cart-delete-item", shopController.postCartDeleteItem);
 router.get("/checkout", shopController.getCheckout);
 //module.exports = router;
 exports.default = router;
+//# sourceMappingURL=shop.js.map

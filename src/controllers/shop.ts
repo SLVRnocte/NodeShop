@@ -35,18 +35,50 @@ const getIndex = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const getCart = (req: Request, res: Response, next: NextFunction) => {
-  res.render("shop/cart", {
-    pageTitle: "Shopping Cart",
-    path: "cart"
+  Cart.getCart(cart => {
+    Product.fetchAll(products => {
+      const cartProducts: { product: Product; quantity: Number }[] = [];
+
+      cart.forEach(cartProduct => {
+        const product = products.find(
+          product => cartProduct.ProductID === product.id
+        );
+        if (product !== undefined) {
+          cartProducts.push({
+            product: product,
+            quantity: cartProduct.Quantity
+          });
+        }
+      });
+
+      res.render("shop/cart", {
+        pageTitle: "Shopping Cart",
+        path: "cart",
+        products: cartProducts
+      });
+    });
   });
 };
 
 const postCart = (req: Request, res: Response, next: NextFunction) => {
   const productID = req.body.productID;
   Product.findByID(productID, product => {
-    Cart.addProduct(productID);
+    Cart.refreshCart(() => {
+      Cart.addProduct(productID);
+    });
   });
   res.redirect("/cart");
+};
+
+const postCartDeleteItem = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const productID = req.body.productID;
+  Cart.deleteProduct(productID, () => {
+    res.redirect("/cart");
+  });
 };
 
 const getOrders = (req: Request, res: Response, next: NextFunction) => {
@@ -69,6 +101,7 @@ export {
   getIndex,
   getCart,
   postCart,
+  postCartDeleteItem,
   getOrders,
   getCheckout
 };

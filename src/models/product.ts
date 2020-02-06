@@ -14,9 +14,9 @@ const productsPath = path.join(
 const getProductsFromFile = (cb: (products: Product[]) => void) => {
   fs.readFile(productsPath, (err, fileContent) => {
     if (err) {
-      return cb([]);
+      cb([]);
     } else {
-      return cb(JSON.parse(fileContent.toString()));
+      cb(JSON.parse(fileContent.toString()));
     }
   });
 };
@@ -32,21 +32,47 @@ class Product {
     title: string,
     imageURL: string,
     description: string,
-    price: number
+    price: number,
+    id?: string
   ) {
+    this.id = id !== undefined ? id : "";
     this.title = title;
     this.imageURL = imageURL;
     this.description = description;
     this.price = price;
-    this.id = crypto.randomBytes(16).toString("hex");
   }
 
   save() {
     getProductsFromFile(products => {
-      products.push(this);
-      fs.writeFile(productsPath, JSON.stringify(products), err => {
+      if (this.id !== "") {
+        const existingProductIndex = products.findIndex(
+          product => product.id === this.id
+        );
+        const updatedProducts = [...products];
+        updatedProducts[existingProductIndex] = this;
+        fs.writeFile(productsPath, JSON.stringify(updatedProducts), err => {
+          if (err) console.log(err);
+        });
+      } else {
+        this.id = crypto.randomBytes(16).toString("hex");
+
+        products.push(this);
+        fs.writeFile(productsPath, JSON.stringify(products), err => {
+          if (err) console.log(err);
+        });
+      }
+    });
+  }
+
+  static deleteByID(id: string, cbDone: () => void) {
+    getProductsFromFile(products => {
+      const updatedProducts = products.filter(product => product.id !== id);
+
+      fs.writeFile(productsPath, JSON.stringify(updatedProducts), err => {
         if (err) {
           console.log(err);
+        } else {
+          cbDone();
         }
       });
     });

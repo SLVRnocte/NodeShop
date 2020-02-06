@@ -27,3 +27,4 @@ app.use(admin_1.routes);
 app.use(shop_1.default);
 app.use("/", errorController.get404);
 app.listen(3000);
+//# sourceMappingURL=app.js.map
