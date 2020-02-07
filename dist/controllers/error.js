@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var get404 = function (req, res, next) {
+const get404 = (req, res, next) => {
     //res.status(404).sendFile(path.join(__dirname, "views", "404.html"));
     res.status(404).render("404", { pageTitle: "404 - Not found", path: "404" });
 };

@@ -65,11 +65,13 @@ class Cart {
   static getTotalPrice() {
     let totalPrice = 0;
     this.cartProducts.forEach(cartProduct => {
-      Product.findByID(cartProduct["ProductID"], product => {
-        for (let i = 0; i < cartProduct["Quantity"]; i++) {
-          totalPrice += product.price;
-        }
-      });
+      Product.findByID(cartProduct["ProductID"])
+        .then(product => {
+          for (let i = 0; i < cartProduct["Quantity"]; i++) {
+            totalPrice += product.rows[0].price;
+          }
+        })
+        .catch(err => console.log(err));
     });
     return totalPrice;
   }

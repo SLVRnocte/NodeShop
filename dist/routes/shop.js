@@ -10,9 +10,9 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var express_1 = __importDefault(require("express"));
-var shopController = __importStar(require("../controllers/shop"));
-var router = express_1.default.Router();
+const express_1 = __importDefault(require("express"));
+const shopController = __importStar(require("../controllers/shop"));
+const router = express_1.default.Router();
 router.get("/", shopController.getIndex);
 router.get("/products", shopController.getProducts);
 router.get("/products/:productID", shopController.getProduct);

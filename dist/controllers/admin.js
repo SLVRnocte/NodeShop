@@ -1,71 +1,83 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var product_1 = require("../models/product");
-var cart_1 = require("../models/cart");
-var getAddProduct = function (req, res, next) {
+const product_1 = require("../models/product");
+const cart_1 = require("../models/cart");
+const getAddProduct = (req, res, next) => {
     res.render("admin/edit-product", {
         pageTitle: "Add Product",
         path: "admin/add-product"
     });
 };
 exports.getAddProduct = getAddProduct;
-var postAddProduct = function (req, res, next) {
-    var title = req.body.title;
-    var imageURL = req.body.imageURL;
-    var description = req.body.description;
-    var price = req.body.price;
-    var product = new product_1.Product(title, imageURL, description, price);
-    product.save();
-    res.redirect("/");
+const postAddProduct = (req, res, next) => {
+    const title = req.body.title;
+    const imageURL = req.body.imageURL;
+    const description = req.body.description;
+    const price = req.body.price;
+    const product = new product_1.Product(title, imageURL, description, price);
+    product
+        .save()
+        .then(() => res.redirect("/"))
+        .catch(err => console.log(err));
 };
 exports.postAddProduct = postAddProduct;
-var getEditProduct = function (req, res, next) {
+const getEditProduct = (req, res, next) => {
     if (req.query.edit !== "true") {
         return res.redirect("/");
     }
-    var productID = req.params.productID;
-    product_1.Product.findByID(productID, function (product) {
+    const productID = req.params.productID;
+    product_1.Product.findByID(productID)
+        .then(product => {
         if (!product) {
             return res.redirect("/");
         }
         res.render("admin/edit-product", {
             pageTitle: "Edit Product",
             path: "admin/edit-product",
-            product: product
+            product: product.rows[0]
         });
-    });
+    })
+        .catch(err => console.log(err));
 };
 exports.getEditProduct = getEditProduct;
-var postEditProduct = function (req, res, next) {
-    var productID = req.body.productID;
-    var updatedTitle = req.body.title;
-    var updatedPrice = req.body.price;
-    var updatedImageURL = req.body.imageURL;
-    var updatedDescription = req.body.description;
-    var updatedProduct = new product_1.Product(updatedTitle, updatedImageURL, updatedDescription, updatedPrice, productID);
-    updatedProduct.save();
-    res.redirect("/admin/products");
+const postEditProduct = (req, res, next) => {
+    const productID = req.body.productID;
+    const updatedTitle = req.body.title;
+    const updatedPrice = req.body.price;
+    const updatedImageURL = req.body.imageURL;
+    const updatedDescription = req.body.description;
+    const updatedProduct = new product_1.Product(updatedTitle, updatedImageURL, updatedDescription, updatedPrice, productID);
+    updatedProduct
+        .save()
+        .then(() => {
+        res.redirect("/admin/products");
+    })
+        .catch(err => console.log(err));
 };
 exports.postEditProduct = postEditProduct;
-var postDeleteProduct = function (req, res, next) {
-    var productID = req.body.productID;
-    cart_1.Cart.refreshCart(function () {
-        cart_1.Cart.deleteProduct(productID, function () {
-            product_1.Product.deleteByID(productID, function () {
+const postDeleteProduct = (req, res, next) => {
+    const productID = req.body.productID;
+    cart_1.Cart.refreshCart(() => {
+        cart_1.Cart.deleteProduct(productID, () => {
+            product_1.Product.deleteByID(productID)
+                .then(() => {
                 res.redirect("/admin/products");
-            });
+            })
+                .catch(err => console.log(err));
         });
     });
 };
 exports.postDeleteProduct = postDeleteProduct;
-var getProducts = function (req, res, next) {
-    product_1.Product.fetchAll(function (products) {
+const getProducts = (req, res, next) => {
+    product_1.Product.fetchAll()
+        .then(products => {
         res.render("admin/products", {
-            products: products,
+            products: products.rows,
             pageTitle: "Admin Products",
             path: "admin/products"
         });
-    });
+    })
+        .catch(err => console.log(err));
 };
 exports.getProducts = getProducts;
 //# sourceMappingURL=admin.js.map

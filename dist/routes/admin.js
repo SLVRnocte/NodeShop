@@ -10,15 +10,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var express_1 = __importDefault(require("express"));
-var adminController = __importStar(require("../controllers/admin"));
-var router = express_1.default.Router();
+const express_1 = __importDefault(require("express"));
+const adminController = __importStar(require("../controllers/admin"));
+const router = express_1.default.Router();
 exports.routes = router;
-var adminURLPrefix = "/admin";
-router.get(adminURLPrefix + "/add-product", adminController.getAddProduct);
-router.get(adminURLPrefix + "/products", adminController.getProducts);
-router.post(adminURLPrefix + "/add-product", adminController.postAddProduct);
-router.get(adminURLPrefix + "/edit-product/:productID", adminController.getEditProduct);
-router.post(adminURLPrefix + "/edit-product", adminController.postEditProduct);
-router.post(adminURLPrefix + "/delete-product", adminController.postDeleteProduct);
+const adminURLPrefix = "/admin";
+router.get(`${adminURLPrefix}/add-product`, adminController.getAddProduct);
+router.get(`${adminURLPrefix}/products`, adminController.getProducts);
+router.post(`${adminURLPrefix}/add-product`, adminController.postAddProduct);
+router.get(`${adminURLPrefix}/edit-product/:productID`, adminController.getEditProduct);
+router.post(`${adminURLPrefix}/edit-product`, adminController.postEditProduct);
+router.post(`${adminURLPrefix}/delete-product`, adminController.postDeleteProduct);
 //# sourceMappingURL=admin.js.map
