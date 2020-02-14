@@ -1,10 +1,10 @@
-import express from "express";
+import express from 'express';
 
-import * as adminController from "../controllers/admin";
+import * as adminController from '../controllers/admin';
 
 const router = express.Router();
 
-const adminURLPrefix = "/admin";
+const adminURLPrefix = '/admin';
 router.get(`${adminURLPrefix}/add-product`, adminController.getAddProduct);
 
 router.get(`${adminURLPrefix}/products`, adminController.getProducts);

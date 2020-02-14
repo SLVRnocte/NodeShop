@@ -15,13 +15,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const pg_1 = require("pg");
 const path_1 = __importDefault(require("path"));
 const product_1 = require("../models/product");
+const user_1 = require("../models/user");
+const cart_1 = require("../models/cart");
+const cartProduct_1 = require("../models/cartProduct");
 require('dotenv').config({
     path: path_1.default.join(path_1.default.dirname(process.mainModule.filename), '../', '.env')
 });
 class DatabaseController {
     static init() {
         return __awaiter(this, void 0, void 0, function* () {
+            yield user_1.User.init(this);
             yield product_1.Product.init(this);
+            yield cart_1.Cart.init(this);
+            yield cartProduct_1.CartProduct.init(this);
         });
     }
     static query(query, values) {
