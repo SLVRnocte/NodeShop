@@ -4,6 +4,8 @@ import { Product } from '../models/product';
 import { User } from '../models/user';
 import { Cart } from '../models/cart';
 import { CartProduct } from '../models/cartProduct';
+import { Order } from '../models/order';
+import { OrderProduct } from '../models/orderProduct';
 
 require('dotenv').config({
   path: path.join(path.dirname(process.mainModule!.filename), '../', '.env')
@@ -19,6 +21,8 @@ class DatabaseController {
     await Product.init(this);
     await Cart.init(this);
     await CartProduct.init(this);
+    await Order.init(this);
+    await OrderProduct.init(this);
   }
 
   static async query(query: string, values?: any[]): Promise<QueryResult> {

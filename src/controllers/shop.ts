@@ -80,11 +80,35 @@ const postCartDeleteItem = (
   res: Response,
   next: NextFunction
 ) => {
-  const productID = req.body.productID;
+  const productID = parseInt(req.body.productID);
   const userID = req.user!.id;
   const cart = new Cart(userID);
+
   cart.load().then(() => {
     cart.deleteProduct(productID).then(() => {
+      res.redirect('/cart');
+    });
+  });
+};
+
+const postCartModifiyItemQuantity = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const productID = parseInt(req.body.productID);
+  const userID = req.user!.id;
+  const cart = new Cart(userID);
+  const modifyType = req.body.modifyType;
+
+  cart.load().then(() => {
+    const cartProduct = cart.cartProducts.find(
+      cartProduct => cartProduct.product.id === productID
+    )!;
+    const newQuantity =
+      cartProduct.quantity + (modifyType === 'increase' ? 1 : -1);
+
+    cartProduct.modifyQuantity(newQuantity).then(() => {
       res.redirect('/cart');
     });
   });
@@ -111,6 +135,7 @@ export {
   getCart,
   postCart,
   postCartDeleteItem,
+  postCartModifiyItemQuantity,
   getOrders,
   getCheckout
 };

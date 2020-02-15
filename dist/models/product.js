@@ -18,6 +18,7 @@ var Product_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 const staticImplements_1 = require("../util/staticImplements");
 const database_1 = require("../controllers/database");
+const user_1 = require("./user");
 let Product = Product_1 = class Product {
     constructor(title, imageURL, description, price, id, createdByUser) {
         this.id = id !== undefined ? id : NaN;
@@ -39,7 +40,7 @@ let Product = Product_1 = class Product {
       imageURL VARCHAR(255) NOT NULL,
       updatedAt TIMESTAMPTZ NOT NULL,
       createdAt TIMESTAMPTZ NOT NULL,
-      createdByUser INT NOT NULL REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE
+      createdByUser INT NOT NULL REFERENCES ${user_1.User.tableName}(id) ON DELETE CASCADE ON UPDATE CASCADE
     )`);
     }
     save() {

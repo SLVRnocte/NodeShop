@@ -50,7 +50,7 @@ class Product implements IDatabaseModel {
       imageURL VARCHAR(255) NOT NULL,
       updatedAt TIMESTAMPTZ NOT NULL,
       createdAt TIMESTAMPTZ NOT NULL,
-      createdByUser INT NOT NULL REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE
+      createdByUser INT NOT NULL REFERENCES ${User.tableName}(id) ON DELETE CASCADE ON UPDATE CASCADE
     )`
     );
   }

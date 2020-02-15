@@ -83,7 +83,7 @@ const postCart = (req, res, next) => {
 };
 exports.postCart = postCart;
 const postCartDeleteItem = (req, res, next) => {
-    const productID = req.body.productID;
+    const productID = parseInt(req.body.productID);
     const userID = req.user.id;
     const cart = new cart_1.Cart(userID);
     cart.load().then(() => {
@@ -93,6 +93,20 @@ const postCartDeleteItem = (req, res, next) => {
     });
 };
 exports.postCartDeleteItem = postCartDeleteItem;
+const postCartModifiyItemQuantity = (req, res, next) => {
+    const productID = parseInt(req.body.productID);
+    const userID = req.user.id;
+    const cart = new cart_1.Cart(userID);
+    const modifyType = req.body.modifyType;
+    cart.load().then(() => {
+        const cartProduct = cart.cartProducts.find(cartProduct => cartProduct.product.id === productID);
+        const newQuantity = cartProduct.quantity + (modifyType === 'increase' ? 1 : -1);
+        cartProduct.modifyQuantity(newQuantity).then(() => {
+            res.redirect('/cart');
+        });
+    });
+};
+exports.postCartModifiyItemQuantity = postCartModifiyItemQuantity;
 const getOrders = (req, res, next) => {
     res.render('shop/orders', {
         pageTitle: 'Your Orders',

@@ -18,6 +18,8 @@ const product_1 = require("../models/product");
 const user_1 = require("../models/user");
 const cart_1 = require("../models/cart");
 const cartProduct_1 = require("../models/cartProduct");
+const order_1 = require("../models/order");
+const orderProduct_1 = require("../models/orderProduct");
 require('dotenv').config({
     path: path_1.default.join(path_1.default.dirname(process.mainModule.filename), '../', '.env')
 });
@@ -28,6 +30,8 @@ class DatabaseController {
             yield product_1.Product.init(this);
             yield cart_1.Cart.init(this);
             yield cartProduct_1.CartProduct.init(this);
+            yield order_1.Order.init(this);
+            yield orderProduct_1.OrderProduct.init(this);
         });
     }
     static query(query, values) {
