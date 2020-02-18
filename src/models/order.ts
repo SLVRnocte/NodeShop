@@ -7,23 +7,16 @@ import {
 import { DatabaseController as db } from '../controllers/database';
 import { QueryResult } from 'pg';
 
-import { Product } from './product';
-import { CartProduct } from './cartProduct';
-import { promises } from 'dns';
 import { User } from './user';
+import { OrderProduct } from './orderProduct';
 
 //@staticImplements<IDatabaseModelStatic>()
 class Order implements IDatabaseModel {
   id: number = NaN;
-  belongsToUser: number;
-  cartProducts: CartProduct[] = [];
+  belongsToUser: number = NaN;
+  orderProducts: OrderProduct[] = [];
 
   static tableName = 'Orders';
-
-  constructor(belongsToUser: number) {
-    //this.id = id !== undefined ? id : NaN;
-    this.belongsToUser = belongsToUser;
-  }
 
   static async init(databaseController: db): Promise<QueryResult> {
     return db.query(
@@ -36,24 +29,34 @@ class Order implements IDatabaseModel {
     );
   }
 
-  async save(): Promise<QueryResult> {
-    // Does the cart exist in the app
-    let result = !isNaN(this.id);
-
-    // Even if so, does it for some reason not exist in the DB?
-    // Maybe someone manually inserted a faulty ID into the URL
-    if (result) {
-      await db
-        .query(`SELECT EXISTS(select 1 from ${Order.tableName} where id=$1)`, [
-          this.id
-        ])
-        .then(res => {
-          result = res.rows[0].exists;
-        });
+  constructor(id?: number, belongsToUser?: number) {
+    if (
+      (belongsToUser === undefined || isNaN(belongsToUser)) &&
+      (id === undefined || isNaN(id))
+    ) {
+      console.error('either assign id or belongsToUser!');
     }
 
+    this.id = id !== undefined && !isNaN(id) ? id : NaN;
+    this.belongsToUser =
+      belongsToUser !== undefined && !isNaN(belongsToUser)
+        ? belongsToUser
+        : NaN;
+
+    // Remember to call setup()
+  }
+
+  async setup() {
+    if (!isNaN(this.id)) {
+      return this.load();
+    } else {
+      return this.save();
+    }
+  }
+
+  async save(): Promise<QueryResult> {
     const now = new Date();
-    if (!result) {
+    if (isNaN(this.id)) {
       return new Promise<QueryResult<any>>(res => {
         db.query(
           `INSERT INTO ${Order.tableName} (updatedAt, orderedAt, belongsToUser) VALUES ($1, $1, $2) RETURNING *`,
@@ -75,26 +78,19 @@ class Order implements IDatabaseModel {
     return db.query(`DELETE FROM ${Order.tableName} WHERE id=$1`, [this.id]);
   }
 
-  load(): Promise<void> {
-    if (this.belongsToUser === NaN) {
-      console.error("Can't load cart without passing user!");
-      return Promise.resolve();
-    }
-
+  private load(): Promise<void> {
     return new Promise<void>(resolve => {
-      db.query(`SELECT * FROM ${Order.tableName} WHERE belongsToUser=$1`, [
-        this.belongsToUser
-      ])
+      db.query(`SELECT * FROM ${Order.tableName} WHERE id=$1`, [this.id])
         .then(result => {
           // This user has no cart yet
           if (result.rowCount === 0) {
-            return this.save(); // this assigns id
+            console.error(`Order with id(${this.id}) not found!`);
           } else {
             this.id = result.rows[0].id;
-            // get all cartItems with this id, populate array
 
-            CartProduct.fetchAllBelongingToCart(this.id).then(result => {
-              this.cartProducts = result;
+            // get all orderItems with this id, populate array
+            OrderProduct.fetchAllBelongingToOrder(this.id).then(result => {
+              this.orderProducts = result;
 
               resolve();
             });
@@ -105,19 +101,19 @@ class Order implements IDatabaseModel {
   }
 
   async addProduct(productID: number): Promise<void> {
-    const cartProductIndex = this.cartProducts.findIndex(
+    const cartProductIndex = this.orderProducts.findIndex(
       cartProduct => cartProduct.product.id === productID
     );
-    let cartProduct = this.cartProducts[cartProductIndex];
-    if (cartProduct) {
-      cartProduct.quantity++;
+    let orderProduct = this.orderProducts[cartProductIndex];
+    if (orderProduct) {
+      orderProduct.quantity++;
     } else {
-      cartProduct = new CartProduct(this.id, 1);
-      await cartProduct.setup(productID);
-      this.cartProducts.push(cartProduct);
+      orderProduct = new OrderProduct(this.id, 1);
+      await orderProduct.setup(productID);
+      this.orderProducts.push(orderProduct);
     }
 
-    await cartProduct.save();
+    await orderProduct.save();
 
     return new Promise<void>(async resolve => {
       await this.save();
@@ -128,14 +124,14 @@ class Order implements IDatabaseModel {
   async deleteProduct(productID: number): Promise<void> {
     //if(productID !== Number)
 
-    const cartProductIndex = this.cartProducts.findIndex(
+    const cartProductIndex = this.orderProducts.findIndex(
       cartProduct => cartProduct.product.id === productID
     );
-    let cartProduct = this.cartProducts[cartProductIndex];
+    let cartProduct = this.orderProducts[cartProductIndex];
     console.log(cartProduct);
     await cartProduct.delete();
 
-    this.cartProducts.splice(cartProductIndex, 1);
+    this.orderProducts.splice(cartProductIndex, 1);
 
     return new Promise<void>(async resolve => {
       await this.save();
@@ -146,7 +142,7 @@ class Order implements IDatabaseModel {
   getTotalPrice(): Promise<number> {
     return new Promise<number>(resolve => {
       let totalPrice = 0;
-      for (const cartProduct of this.cartProducts) {
+      for (const cartProduct of this.orderProducts) {
         for (let i = 0; i < cartProduct.quantity; i++) {
           totalPrice += cartProduct.product.price;
         }
@@ -154,6 +150,37 @@ class Order implements IDatabaseModel {
 
       resolve(totalPrice);
     });
+  }
+
+  static fetchAllBelongingToUser(userID: number): Promise<Order[]> {
+    return new Promise<Order[]>(resolve => {
+      db.query(`SELECT * FROM ${Order.tableName} WHERE belongsToUser=$1`, [
+        userID
+      ])
+        .then(async result => {
+          const orders: Order[] = [];
+          for (const row of result.rows) {
+            await this.createInstanceFromDB(row).then(result => {
+              orders.push(result!);
+            });
+          }
+          resolve(orders);
+        })
+        .catch(err => console.log(err));
+    });
+  }
+
+  private static async createInstanceFromDB(
+    dbProduct: any
+  ): Promise<Order | undefined> {
+    if (dbProduct === undefined) {
+      return undefined;
+    }
+
+    const order = new Order(dbProduct.id);
+
+    await order.load();
+    return order;
   }
 }
 

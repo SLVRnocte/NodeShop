@@ -2,6 +2,19 @@ import { Request, Response, NextFunction } from 'express';
 
 import { Product } from '../models/product';
 import { Cart } from '../models/cart';
+import { Order } from '../models/order';
+
+const getIndex = (req: Request, res: Response, next: NextFunction) => {
+  Product.fetchAll()
+    .then(result => {
+      res.render('shop/index', {
+        products: result,
+        pageTitle: 'Shop',
+        path: 'shop'
+      });
+    })
+    .catch(err => console.log(err));
+};
 
 const getProducts = (req: Request, res: Response, next: NextFunction) => {
   Product.fetchAll()
@@ -28,18 +41,6 @@ const getProduct = (req: Request, res: Response, next: NextFunction) => {
       } else {
         res.redirect('/');
       }
-    })
-    .catch(err => console.log(err));
-};
-
-const getIndex = (req: Request, res: Response, next: NextFunction) => {
-  Product.fetchAll()
-    .then(result => {
-      res.render('shop/index', {
-        products: result,
-        pageTitle: 'Shop',
-        path: 'shop'
-      });
     })
     .catch(err => console.log(err));
 };
@@ -115,10 +116,43 @@ const postCartModifiyItemQuantity = (
 };
 
 const getOrders = (req: Request, res: Response, next: NextFunction) => {
-  res.render('shop/orders', {
-    pageTitle: 'Your Orders',
-    path: 'orders'
+  const userID = req.user!.id;
+  Order.fetchAllBelongingToUser(userID).then(orders => {
+    res.render('shop/orders', {
+      pageTitle: 'Your Orders',
+      path: 'orders',
+      orders: orders
+    });
   });
+};
+
+const postOrder = (req: Request, res: Response, next: NextFunction) => {
+  const userID = req.user!.id;
+  const cart = new Cart(userID);
+
+  cart
+    .load()
+    .then(async () => {
+      const newOrder = new Order(undefined, userID);
+      await newOrder.setup();
+      for (const product of cart.cartProducts) {
+        for (let i = 0; i < product.quantity; i++) {
+          await newOrder.addProduct(product.product.id);
+        }
+      }
+      return newOrder.save().then(() => {
+        return cart.delete();
+      });
+      // cart.addProduct(productID).then(() => {
+      //   res.redirect('/cart');
+      // });
+    })
+    .then(() => {
+      res.render('shop/orders', {
+        pageTitle: 'Your Orders',
+        path: 'orders'
+      });
+    });
 };
 
 const getCheckout = (req: Request, res: Response, next: NextFunction) => {
@@ -129,13 +163,14 @@ const getCheckout = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export {
+  getIndex,
   getProducts,
   getProduct,
-  getIndex,
   getCart,
   postCart,
   postCartDeleteItem,
   postCartModifiyItemQuantity,
   getOrders,
+  postOrder,
   getCheckout
 };

@@ -17,7 +17,9 @@ class Cart {
     constructor(belongsToUser) {
         this.id = NaN;
         this.cartProducts = [];
-        //this.id = id !== undefined ? id : NaN;
+        if (belongsToUser === NaN) {
+            console.error('belongsToUser cannot be NaN');
+        }
         this.belongsToUser = belongsToUser;
     }
     static init(databaseController) {
@@ -34,17 +36,6 @@ class Cart {
         return __awaiter(this, void 0, void 0, function* () {
             // Does the cart exist in the app
             let result = !isNaN(this.id);
-            // Even if so, does it for some reason not exist in the DB?
-            // Maybe someone manually inserted a faulty ID into the URL
-            if (result) {
-                yield database_1.DatabaseController
-                    .query(`SELECT EXISTS(select 1 from ${Cart.tableName} where id=$1)`, [
-                    this.id
-                ])
-                    .then(res => {
-                    result = res.rows[0].exists;
-                });
-            }
             const now = new Date();
             if (!result) {
                 return new Promise(res => {
@@ -63,31 +54,37 @@ class Cart {
         });
     }
     delete() {
-        return database_1.DatabaseController.query(`DELETE FROM ${Cart.tableName} WHERE id=$1`, [this.id]);
+        return new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
+            for (const product of this.cartProducts) {
+                yield this.deleteProduct(product.product.id);
+            }
+            database_1.DatabaseController.query(`DELETE FROM ${Cart.tableName} WHERE id=$1`, [this.id]).then(result => {
+                resolve(result);
+            });
+        }));
     }
     load() {
-        if (this.belongsToUser === NaN) {
-            console.error("Can't load cart without passing user!");
-            return Promise.resolve();
-        }
         return new Promise(resolve => {
             database_1.DatabaseController.query(`SELECT * FROM ${Cart.tableName} WHERE belongsToUser=$1`, [
                 this.belongsToUser
             ])
-                .then(result => {
+                .then((result) => __awaiter(this, void 0, void 0, function* () {
                 // This user has no cart yet
                 if (result.rowCount === 0) {
-                    return this.save(); // this assigns id
+                    yield this.save(); // this assigns id
+                    resolve();
                 }
                 else {
                     this.id = result.rows[0].id;
                     // get all cartItems with this id, populate array
-                    cartProduct_1.CartProduct.fetchAllBelongingToCart(this.id).then(result => {
+                    cartProduct_1.CartProduct.fetchAllBelongingToCart(this.id)
+                        .then(result => {
                         this.cartProducts = result;
                         resolve();
-                    });
+                    })
+                        .catch(err => console.log(err));
                 }
-            })
+            }))
                 .catch(err => console.log(err));
         });
     }
@@ -112,7 +109,6 @@ class Cart {
     }
     deleteProduct(productID) {
         return __awaiter(this, void 0, void 0, function* () {
-            //if(productID !== Number)
             const cartProductIndex = this.cartProducts.findIndex(cartProduct => cartProduct.product.id === productID);
             let cartProduct = this.cartProducts[cartProductIndex];
             yield cartProduct.delete();

@@ -10,15 +10,24 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const database_1 = require("../controllers/database");
-const cartProduct_1 = require("./cartProduct");
 const user_1 = require("./user");
+const orderProduct_1 = require("./orderProduct");
 //@staticImplements<IDatabaseModelStatic>()
 class Order {
-    constructor(belongsToUser) {
+    constructor(id, belongsToUser) {
         this.id = NaN;
-        this.cartProducts = [];
-        //this.id = id !== undefined ? id : NaN;
-        this.belongsToUser = belongsToUser;
+        this.belongsToUser = NaN;
+        this.orderProducts = [];
+        if ((belongsToUser === undefined || isNaN(belongsToUser)) &&
+            (id === undefined || isNaN(id))) {
+            console.error('either assign id or belongsToUser!');
+        }
+        this.id = id !== undefined && !isNaN(id) ? id : NaN;
+        this.belongsToUser =
+            belongsToUser !== undefined && !isNaN(belongsToUser)
+                ? belongsToUser
+                : NaN;
+        // Remember to call setup()
     }
     static init(databaseController) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -30,23 +39,20 @@ class Order {
         )`);
         });
     }
+    setup() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!isNaN(this.id)) {
+                return this.load();
+            }
+            else {
+                return this.save();
+            }
+        });
+    }
     save() {
         return __awaiter(this, void 0, void 0, function* () {
-            // Does the cart exist in the app
-            let result = !isNaN(this.id);
-            // Even if so, does it for some reason not exist in the DB?
-            // Maybe someone manually inserted a faulty ID into the URL
-            if (result) {
-                yield database_1.DatabaseController
-                    .query(`SELECT EXISTS(select 1 from ${Order.tableName} where id=$1)`, [
-                    this.id
-                ])
-                    .then(res => {
-                    result = res.rows[0].exists;
-                });
-            }
             const now = new Date();
-            if (!result) {
+            if (isNaN(this.id)) {
                 return new Promise(res => {
                     database_1.DatabaseController.query(`INSERT INTO ${Order.tableName} (updatedAt, orderedAt, belongsToUser) VALUES ($1, $1, $2) RETURNING *`, [now, this.belongsToUser]).then(result => {
                         this.id = result.rows[0].id;
@@ -63,24 +69,18 @@ class Order {
         return database_1.DatabaseController.query(`DELETE FROM ${Order.tableName} WHERE id=$1`, [this.id]);
     }
     load() {
-        if (this.belongsToUser === NaN) {
-            console.error("Can't load cart without passing user!");
-            return Promise.resolve();
-        }
         return new Promise(resolve => {
-            database_1.DatabaseController.query(`SELECT * FROM ${Order.tableName} WHERE belongsToUser=$1`, [
-                this.belongsToUser
-            ])
+            database_1.DatabaseController.query(`SELECT * FROM ${Order.tableName} WHERE id=$1`, [this.id])
                 .then(result => {
                 // This user has no cart yet
                 if (result.rowCount === 0) {
-                    return this.save(); // this assigns id
+                    console.error(`Order with id(${this.id}) not found!`);
                 }
                 else {
                     this.id = result.rows[0].id;
-                    // get all cartItems with this id, populate array
-                    cartProduct_1.CartProduct.fetchAllBelongingToCart(this.id).then(result => {
-                        this.cartProducts = result;
+                    // get all orderItems with this id, populate array
+                    orderProduct_1.OrderProduct.fetchAllBelongingToOrder(this.id).then(result => {
+                        this.orderProducts = result;
                         resolve();
                     });
                 }
@@ -90,17 +90,17 @@ class Order {
     }
     addProduct(productID) {
         return __awaiter(this, void 0, void 0, function* () {
-            const cartProductIndex = this.cartProducts.findIndex(cartProduct => cartProduct.product.id === productID);
-            let cartProduct = this.cartProducts[cartProductIndex];
-            if (cartProduct) {
-                cartProduct.quantity++;
+            const cartProductIndex = this.orderProducts.findIndex(cartProduct => cartProduct.product.id === productID);
+            let orderProduct = this.orderProducts[cartProductIndex];
+            if (orderProduct) {
+                orderProduct.quantity++;
             }
             else {
-                cartProduct = new cartProduct_1.CartProduct(this.id, 1);
-                yield cartProduct.setup(productID);
-                this.cartProducts.push(cartProduct);
+                orderProduct = new orderProduct_1.OrderProduct(this.id, 1);
+                yield orderProduct.setup(productID);
+                this.orderProducts.push(orderProduct);
             }
-            yield cartProduct.save();
+            yield orderProduct.save();
             return new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
                 yield this.save();
                 resolve();
@@ -110,11 +110,11 @@ class Order {
     deleteProduct(productID) {
         return __awaiter(this, void 0, void 0, function* () {
             //if(productID !== Number)
-            const cartProductIndex = this.cartProducts.findIndex(cartProduct => cartProduct.product.id === productID);
-            let cartProduct = this.cartProducts[cartProductIndex];
+            const cartProductIndex = this.orderProducts.findIndex(cartProduct => cartProduct.product.id === productID);
+            let cartProduct = this.orderProducts[cartProductIndex];
             console.log(cartProduct);
             yield cartProduct.delete();
-            this.cartProducts.splice(cartProductIndex, 1);
+            this.orderProducts.splice(cartProductIndex, 1);
             return new Promise((resolve) => __awaiter(this, void 0, void 0, function* () {
                 yield this.save();
                 resolve();
@@ -124,12 +124,39 @@ class Order {
     getTotalPrice() {
         return new Promise(resolve => {
             let totalPrice = 0;
-            for (const cartProduct of this.cartProducts) {
+            for (const cartProduct of this.orderProducts) {
                 for (let i = 0; i < cartProduct.quantity; i++) {
                     totalPrice += cartProduct.product.price;
                 }
             }
             resolve(totalPrice);
+        });
+    }
+    static fetchAllBelongingToUser(userID) {
+        return new Promise(resolve => {
+            database_1.DatabaseController.query(`SELECT * FROM ${Order.tableName} WHERE belongsToUser=$1`, [
+                userID
+            ])
+                .then((result) => __awaiter(this, void 0, void 0, function* () {
+                const orders = [];
+                for (const row of result.rows) {
+                    yield this.createInstanceFromDB(row).then(result => {
+                        orders.push(result);
+                    });
+                }
+                resolve(orders);
+            }))
+                .catch(err => console.log(err));
+        });
+    }
+    static createInstanceFromDB(dbProduct) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (dbProduct === undefined) {
+                return undefined;
+            }
+            const order = new Order(dbProduct.id);
+            yield order.load();
+            return order;
         });
     }
 }

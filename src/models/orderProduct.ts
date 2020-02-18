@@ -32,9 +32,9 @@ class OrderProduct implements IDatabaseModel {
     );
   }
 
-  constructor(belongsToCart: number, quantity: number, id?: number) {
+  constructor(belongsToOrder: number, quantity: number, id?: number) {
     this.id = id !== undefined ? id : NaN;
-    this.belongsToOrder = belongsToCart;
+    this.belongsToOrder = belongsToOrder;
     this.quantity = quantity;
   }
 
@@ -45,7 +45,7 @@ class OrderProduct implements IDatabaseModel {
   }
 
   async save(): Promise<QueryResult> {
-    // Does the cartItem exist in the app
+    // Does the orderProduct exist in the app
     let result = !isNaN(this.id);
 
     // Even if so, does it for some reason not exist in the DB?
@@ -65,7 +65,7 @@ class OrderProduct implements IDatabaseModel {
     if (!result) {
       return new Promise<QueryResult<any>>(res => {
         db.query(
-          `INSERT INTO ${OrderProduct.tableName} (belongsToCart, productID, quantity, updatedAt, createdAt) VALUES ($1, $2, $3, $4, $4) RETURNING *`,
+          `INSERT INTO ${OrderProduct.tableName} (belongsToOrder, productID, quantity, updatedAt, createdAt) VALUES ($1, $2, $3, $4, $4) RETURNING *`,
           [this.belongsToOrder, this.product.id, this.quantity, now]
         ).then(result => {
           this.id = result.rows[0].id;
@@ -86,10 +86,10 @@ class OrderProduct implements IDatabaseModel {
     ]);
   }
 
-  static fetchAllBelongingToCart(cartID: number): Promise<OrderProduct[]> {
+  static fetchAllBelongingToOrder(cartID: number): Promise<OrderProduct[]> {
     return new Promise<OrderProduct[]>(resolve => {
       db.query(
-        `SELECT * FROM ${OrderProduct.tableName} WHERE belongsToCart=$1`,
+        `SELECT * FROM ${OrderProduct.tableName} WHERE belongsToOrder=$1`,
         [cartID]
       )
         .then(async result => {

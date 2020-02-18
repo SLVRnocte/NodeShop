@@ -28,7 +28,7 @@
                     for (let i = 0; i < cartProduct.quantity; i++) {
                         totalProductPrice += cartProduct.product.price;
                     }  %>
-                    <%= totalProductPrice %>
+                    <%= totalProductPrice.toFixed(2) %>
                     <% } %></h2>
                 <form action="/cart-delete-item" method="POST">
                     <input type="hidden" name="productID" id="productID" value="<%= cartProduct.product.id %>">

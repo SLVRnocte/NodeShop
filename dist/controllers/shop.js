@@ -11,6 +11,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const product_1 = require("../models/product");
 const cart_1 = require("../models/cart");
+const order_1 = require("../models/order");
+const getIndex = (req, res, next) => {
+    product_1.Product.fetchAll()
+        .then(result => {
+        res.render('shop/index', {
+            products: result,
+            pageTitle: 'Shop',
+            path: 'shop'
+        });
+    })
+        .catch(err => console.log(err));
+};
+exports.getIndex = getIndex;
 const getProducts = (req, res, next) => {
     product_1.Product.fetchAll()
         .then(result => {
@@ -41,18 +54,6 @@ const getProduct = (req, res, next) => {
         .catch(err => console.log(err));
 };
 exports.getProduct = getProduct;
-const getIndex = (req, res, next) => {
-    product_1.Product.fetchAll()
-        .then(result => {
-        res.render('shop/index', {
-            products: result,
-            pageTitle: 'Shop',
-            path: 'shop'
-        });
-    })
-        .catch(err => console.log(err));
-};
-exports.getIndex = getIndex;
 const getCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const userID = req.user.id;
     const cart = new cart_1.Cart(userID);
@@ -108,12 +109,44 @@ const postCartModifiyItemQuantity = (req, res, next) => {
 };
 exports.postCartModifiyItemQuantity = postCartModifiyItemQuantity;
 const getOrders = (req, res, next) => {
-    res.render('shop/orders', {
-        pageTitle: 'Your Orders',
-        path: 'orders'
+    const userID = req.user.id;
+    order_1.Order.fetchAllBelongingToUser(userID).then(orders => {
+        res.render('shop/orders', {
+            pageTitle: 'Your Orders',
+            path: 'orders',
+            orders: orders
+        });
     });
 };
 exports.getOrders = getOrders;
+const postOrder = (req, res, next) => {
+    const userID = req.user.id;
+    const cart = new cart_1.Cart(userID);
+    cart
+        .load()
+        .then(() => __awaiter(void 0, void 0, void 0, function* () {
+        const newOrder = new order_1.Order(undefined, userID);
+        yield newOrder.setup();
+        for (const product of cart.cartProducts) {
+            for (let i = 0; i < product.quantity; i++) {
+                yield newOrder.addProduct(product.product.id);
+            }
+        }
+        return newOrder.save().then(() => {
+            return cart.delete();
+        });
+        // cart.addProduct(productID).then(() => {
+        //   res.redirect('/cart');
+        // });
+    }))
+        .then(() => {
+        res.render('shop/orders', {
+            pageTitle: 'Your Orders',
+            path: 'orders'
+        });
+    });
+};
+exports.postOrder = postOrder;
 const getCheckout = (req, res, next) => {
     res.render('shop/checkout', {
         pageTitle: 'Checkout',

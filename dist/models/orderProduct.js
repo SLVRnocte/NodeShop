@@ -14,10 +14,10 @@ const product_1 = require("./product");
 const order_1 = require("./order");
 //@staticImplements<IDatabaseModelStatic>()
 class OrderProduct {
-    constructor(belongsToCart, quantity, id) {
+    constructor(belongsToOrder, quantity, id) {
         this.product = new product_1.Product('', '', '', 0);
         this.id = id !== undefined ? id : NaN;
-        this.belongsToOrder = belongsToCart;
+        this.belongsToOrder = belongsToOrder;
         this.quantity = quantity;
     }
     static init(databaseController) {
@@ -39,7 +39,7 @@ class OrderProduct {
     }
     save() {
         return __awaiter(this, void 0, void 0, function* () {
-            // Does the cartItem exist in the app
+            // Does the orderProduct exist in the app
             let result = !isNaN(this.id);
             // Even if so, does it for some reason not exist in the DB?
             // Maybe someone manually inserted a faulty ID into the URL
@@ -53,7 +53,7 @@ class OrderProduct {
             const now = new Date();
             if (!result) {
                 return new Promise(res => {
-                    database_1.DatabaseController.query(`INSERT INTO ${OrderProduct.tableName} (belongsToCart, productID, quantity, updatedAt, createdAt) VALUES ($1, $2, $3, $4, $4) RETURNING *`, [this.belongsToOrder, this.product.id, this.quantity, now]).then(result => {
+                    database_1.DatabaseController.query(`INSERT INTO ${OrderProduct.tableName} (belongsToOrder, productID, quantity, updatedAt, createdAt) VALUES ($1, $2, $3, $4, $4) RETURNING *`, [this.belongsToOrder, this.product.id, this.quantity, now]).then(result => {
                         this.id = result.rows[0].id;
                         res(result);
                     });
@@ -69,9 +69,9 @@ class OrderProduct {
             this.id
         ]);
     }
-    static fetchAllBelongingToCart(cartID) {
+    static fetchAllBelongingToOrder(cartID) {
         return new Promise(resolve => {
-            database_1.DatabaseController.query(`SELECT * FROM ${OrderProduct.tableName} WHERE belongsToCart=$1`, [cartID])
+            database_1.DatabaseController.query(`SELECT * FROM ${OrderProduct.tableName} WHERE belongsToOrder=$1`, [cartID])
                 .then((result) => __awaiter(this, void 0, void 0, function* () {
                 const cartProducts = [];
                 for (const row of result.rows) {
