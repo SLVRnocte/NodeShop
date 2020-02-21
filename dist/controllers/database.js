@@ -12,17 +12,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const fs_1 = __importDefault(require("fs"));
 const pg_1 = require("pg");
-const path_1 = __importDefault(require("path"));
 const product_1 = require("../models/product");
 const user_1 = require("../models/user");
 const cart_1 = require("../models/cart");
 const cartProduct_1 = require("../models/cartProduct");
 const order_1 = require("../models/order");
 const orderProduct_1 = require("../models/orderProduct");
-require('dotenv').config({
-    path: path_1.default.join(path_1.default.dirname(process.mainModule.filename), '../', '.env')
-});
 class DatabaseController {
     static init() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -32,6 +29,12 @@ class DatabaseController {
             yield cartProduct_1.CartProduct.init(this);
             yield order_1.Order.init(this);
             yield orderProduct_1.OrderProduct.init(this);
+            // check if session DB table exists, create if not
+            yield this.query("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'session')").then((result) => __awaiter(this, void 0, void 0, function* () {
+                if (!result.rows[0].exists) {
+                    yield this.query(fs_1.default.readFileSync('node_modules/connect-pg-simple/table.sql').toString());
+                }
+            }));
         });
     }
     static query(query, values) {

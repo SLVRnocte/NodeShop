@@ -18,7 +18,8 @@ const getIndex = (req, res, next) => {
         res.render('shop/index', {
             products: result,
             pageTitle: 'Shop',
-            path: 'shop'
+            path: 'shop',
+            isLoggedIn: req.session.isLoggedIn
         });
     })
         .catch(err => console.log(err));
@@ -30,7 +31,8 @@ const getProducts = (req, res, next) => {
         res.render('shop/product-list', {
             products: result,
             pageTitle: 'All Products',
-            path: 'products'
+            path: 'products',
+            isLoggedIn: req.session.isLoggedIn
         });
     })
         .catch(err => console.log(err));
@@ -44,7 +46,8 @@ const getProduct = (req, res, next) => {
             res.render('shop/product-detail', {
                 product: result,
                 pageTitle: result.title,
-                path: 'products'
+                path: 'products',
+                isLoggedIn: req.session.isLoggedIn
             });
         }
         else {
@@ -55,8 +58,7 @@ const getProduct = (req, res, next) => {
 };
 exports.getProduct = getProduct;
 const getCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const userID = req.user.id;
-    const cart = new cart_1.Cart(userID);
+    const cart = new cart_1.Cart(req.session);
     cart
         .load()
         .then(() => {
@@ -65,7 +67,8 @@ const getCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* 
                 pageTitle: 'Shopping Cart',
                 path: 'cart',
                 cartProducts: cart.cartProducts,
-                totalPrice: totalPrice.toFixed(2)
+                totalPrice: totalPrice.toFixed(2),
+                isLoggedIn: req.session.isLoggedIn
             });
         });
     })
@@ -74,8 +77,7 @@ const getCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* 
 exports.getCart = getCart;
 const postCart = (req, res, next) => {
     const productID = parseInt(req.body.productID);
-    const userID = req.user.id;
-    const cart = new cart_1.Cart(userID);
+    const cart = new cart_1.Cart(req.session);
     cart.load().then(() => {
         cart.addProduct(productID).then(() => {
             res.redirect('/cart');
@@ -85,8 +87,7 @@ const postCart = (req, res, next) => {
 exports.postCart = postCart;
 const postCartDeleteItem = (req, res, next) => {
     const productID = parseInt(req.body.productID);
-    const userID = req.user.id;
-    const cart = new cart_1.Cart(userID);
+    const cart = new cart_1.Cart(req.session);
     cart.load().then(() => {
         cart.deleteProduct(productID).then(() => {
             res.redirect('/cart');
@@ -96,8 +97,7 @@ const postCartDeleteItem = (req, res, next) => {
 exports.postCartDeleteItem = postCartDeleteItem;
 const postCartModifiyItemQuantity = (req, res, next) => {
     const productID = parseInt(req.body.productID);
-    const userID = req.user.id;
-    const cart = new cart_1.Cart(userID);
+    const cart = new cart_1.Cart(req.session);
     const modifyType = req.body.modifyType;
     cart.load().then(() => {
         const cartProduct = cart.cartProducts.find(cartProduct => cartProduct.product.id === productID);
@@ -109,23 +109,23 @@ const postCartModifiyItemQuantity = (req, res, next) => {
 };
 exports.postCartModifiyItemQuantity = postCartModifiyItemQuantity;
 const getOrders = (req, res, next) => {
-    const userID = req.user.id;
+    const userID = req.session.user.id;
     order_1.Order.fetchAllBelongingToUser(userID).then(orders => {
         res.render('shop/orders', {
             pageTitle: 'Your Orders',
             path: 'orders',
-            orders: orders
+            orders: orders,
+            isLoggedIn: req.session.isLoggedIn
         });
     });
 };
 exports.getOrders = getOrders;
 const postOrder = (req, res, next) => {
-    const userID = req.user.id;
-    const cart = new cart_1.Cart(userID);
+    const cart = new cart_1.Cart(req.session);
     cart
         .load()
         .then(() => __awaiter(void 0, void 0, void 0, function* () {
-        const newOrder = new order_1.Order(undefined, userID);
+        const newOrder = new order_1.Order(undefined, cart.belongsToUser.id);
         yield newOrder.setup();
         for (const product of cart.cartProducts) {
             for (let i = 0; i < product.quantity; i++) {
@@ -142,7 +142,8 @@ const postOrder = (req, res, next) => {
         .then(() => {
         res.render('shop/orders', {
             pageTitle: 'Your Orders',
-            path: 'orders'
+            path: 'orders',
+            isLoggedIn: req.session.isLoggedIn
         });
     });
 };
@@ -150,7 +151,8 @@ exports.postOrder = postOrder;
 const getCheckout = (req, res, next) => {
     res.render('shop/checkout', {
         pageTitle: 'Checkout',
-        path: 'checkout'
+        path: 'checkout',
+        isLoggedIn: req.session.isLoggedIn
     });
 };
 exports.getCheckout = getCheckout;

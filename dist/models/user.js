@@ -35,6 +35,9 @@ let User = User_1 = class User {
         )`);
         });
     }
+    testme() {
+        return this.email;
+    }
     save() {
         return __awaiter(this, void 0, void 0, function* () {
             // Does the user exist in the app
@@ -97,6 +100,14 @@ let User = User_1 = class User {
     }
 };
 User.tableName = 'Users';
+User.createGuest = () => {
+    return new Promise(resolve => {
+        const user = new User_1('Guest', 'Guest@guest');
+        user.save().then(() => {
+            resolve(user);
+        });
+    });
+};
 User = User_1 = __decorate([
     staticImplements_1.staticImplements()
 ], User);

@@ -7,24 +7,22 @@ import {
 import { DatabaseController as db } from '../controllers/database';
 import { QueryResult } from 'pg';
 
-import { Product } from './product';
 import { CartProduct } from './cartProduct';
-import { promises } from 'dns';
 import { User } from './user';
+import { setUser } from '../controllers/auth';
 
 //@staticImplements<IDatabaseModelStatic>()
 class Cart implements IDatabaseModel {
   id: number = NaN;
-  belongsToUser: number;
+  session: Express.Session;
+  belongsToUser: User | undefined = undefined;
   cartProducts: CartProduct[] = [];
 
   static tableName = 'Carts';
 
-  constructor(belongsToUser: number) {
-    if (belongsToUser === NaN) {
-      console.error('belongsToUser cannot be NaN');
-    }
-    this.belongsToUser = belongsToUser;
+  constructor(session: Express.Session) {
+    this.belongsToUser = session.user;
+    this.session = session;
   }
 
   static async init(databaseController: db): Promise<QueryResult> {
@@ -47,7 +45,7 @@ class Cart implements IDatabaseModel {
       return new Promise<QueryResult<any>>(res => {
         db.query(
           `INSERT INTO ${Cart.tableName} (updatedAt, createdAt, belongsToUser) VALUES ($1, $1, $2) RETURNING *`,
-          [now, this.belongsToUser]
+          [now, this.belongsToUser!.id]
         ).then(result => {
           this.id = result.rows[0].id;
           res(result);
@@ -75,10 +73,17 @@ class Cart implements IDatabaseModel {
     });
   }
 
-  load(): Promise<void> {
+  async load(): Promise<void> {
+    if (this.belongsToUser === undefined) {
+      await User.createGuest().then(async guest => {
+        this.belongsToUser = guest;
+        await setUser(this.session, guest);
+      });
+    }
+
     return new Promise<void>(resolve => {
       db.query(`SELECT * FROM ${Cart.tableName} WHERE belongsToUser=$1`, [
-        this.belongsToUser
+        this.belongsToUser!.id
       ])
         .then(async result => {
           // This user has no cart yet

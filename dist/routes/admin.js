@@ -13,7 +13,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const adminController = __importStar(require("../controllers/admin"));
 const router = express_1.default.Router();
-exports.routes = router;
 const adminURLPrefix = '/admin';
 router.get(`${adminURLPrefix}/add-product`, adminController.getAddProduct);
 router.get(`${adminURLPrefix}/products`, adminController.getProducts);
@@ -21,4 +20,7 @@ router.post(`${adminURLPrefix}/add-product`, adminController.postAddProduct);
 router.get(`${adminURLPrefix}/edit-product/:productID`, adminController.getEditProduct);
 router.post(`${adminURLPrefix}/edit-product`, adminController.postEditProduct);
 router.post(`${adminURLPrefix}/delete-product`, adminController.postDeleteProduct);
+/*exports.routes = router;
+exports.products = products;*/
+exports.default = router;
 //# sourceMappingURL=admin.js.map

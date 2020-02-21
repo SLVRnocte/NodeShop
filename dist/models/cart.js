@@ -12,15 +12,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const database_1 = require("../controllers/database");
 const cartProduct_1 = require("./cartProduct");
 const user_1 = require("./user");
+const auth_1 = require("../controllers/auth");
 //@staticImplements<IDatabaseModelStatic>()
 class Cart {
-    constructor(belongsToUser) {
+    constructor(session) {
         this.id = NaN;
+        this.belongsToUser = undefined;
         this.cartProducts = [];
-        if (belongsToUser === NaN) {
-            console.error('belongsToUser cannot be NaN');
-        }
-        this.belongsToUser = belongsToUser;
+        this.belongsToUser = session.user;
+        this.session = session;
     }
     static init(databaseController) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -39,7 +39,7 @@ class Cart {
             const now = new Date();
             if (!result) {
                 return new Promise(res => {
-                    database_1.DatabaseController.query(`INSERT INTO ${Cart.tableName} (updatedAt, createdAt, belongsToUser) VALUES ($1, $1, $2) RETURNING *`, [now, this.belongsToUser]).then(result => {
+                    database_1.DatabaseController.query(`INSERT INTO ${Cart.tableName} (updatedAt, createdAt, belongsToUser) VALUES ($1, $1, $2) RETURNING *`, [now, this.belongsToUser.id]).then(result => {
                         this.id = result.rows[0].id;
                         res(result);
                     });
@@ -64,28 +64,36 @@ class Cart {
         }));
     }
     load() {
-        return new Promise(resolve => {
-            database_1.DatabaseController.query(`SELECT * FROM ${Cart.tableName} WHERE belongsToUser=$1`, [
-                this.belongsToUser
-            ])
-                .then((result) => __awaiter(this, void 0, void 0, function* () {
-                // This user has no cart yet
-                if (result.rowCount === 0) {
-                    yield this.save(); // this assigns id
-                    resolve();
-                }
-                else {
-                    this.id = result.rows[0].id;
-                    // get all cartItems with this id, populate array
-                    cartProduct_1.CartProduct.fetchAllBelongingToCart(this.id)
-                        .then(result => {
-                        this.cartProducts = result;
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.belongsToUser === undefined) {
+                yield user_1.User.createGuest().then((guest) => __awaiter(this, void 0, void 0, function* () {
+                    this.belongsToUser = guest;
+                    yield auth_1.setUser(this.session, guest);
+                }));
+            }
+            return new Promise(resolve => {
+                database_1.DatabaseController.query(`SELECT * FROM ${Cart.tableName} WHERE belongsToUser=$1`, [
+                    this.belongsToUser.id
+                ])
+                    .then((result) => __awaiter(this, void 0, void 0, function* () {
+                    // This user has no cart yet
+                    if (result.rowCount === 0) {
+                        yield this.save(); // this assigns id
                         resolve();
-                    })
-                        .catch(err => console.log(err));
-                }
-            }))
-                .catch(err => console.log(err));
+                    }
+                    else {
+                        this.id = result.rows[0].id;
+                        // get all cartItems with this id, populate array
+                        cartProduct_1.CartProduct.fetchAllBelongingToCart(this.id)
+                            .then(result => {
+                            this.cartProducts = result;
+                            resolve();
+                        })
+                            .catch(err => console.log(err));
+                    }
+                }))
+                    .catch(err => console.log(err));
+            });
         });
     }
     addProduct(productID) {

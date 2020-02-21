@@ -1,15 +1,11 @@
-import { Pool, QueryResult, Query } from 'pg';
-import path from 'path';
+import fs from 'fs';
+import { Pool, QueryResult } from 'pg';
 import { Product } from '../models/product';
 import { User } from '../models/user';
 import { Cart } from '../models/cart';
 import { CartProduct } from '../models/cartProduct';
 import { Order } from '../models/order';
 import { OrderProduct } from '../models/orderProduct';
-
-require('dotenv').config({
-  path: path.join(path.dirname(process.mainModule!.filename), '../', '.env')
-});
 
 class DatabaseController {
   // pools will use environment variables
@@ -23,6 +19,17 @@ class DatabaseController {
     await CartProduct.init(this);
     await Order.init(this);
     await OrderProduct.init(this);
+
+    // check if session DB table exists, create if not
+    await this.query(
+      "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'session')"
+    ).then(async result => {
+      if (!result.rows[0].exists) {
+        await this.query(
+          fs.readFileSync('node_modules/connect-pg-simple/table.sql').toString()
+        );
+      }
+    });
   }
 
   static async query(query: string, values?: any[]): Promise<QueryResult> {

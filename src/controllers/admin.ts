@@ -2,21 +2,28 @@ import { Request, Response, NextFunction } from 'express';
 
 import { Product } from '../models/product';
 
-import { Cart } from '../models/cart';
-
 const getAddProduct = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session!.isLoggedIn) {
+    return res.redirect('/');
+  }
+
   res.render('admin/edit-product', {
     pageTitle: 'Add Product',
-    path: 'admin/add-product'
+    path: 'admin/add-product',
+    isLoggedIn: req.session!.isLoggedIn
   });
 };
 
 const postAddProduct = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session!.isLoggedIn) {
+    return res.redirect('/');
+  }
+
   const title: string = req.body.title;
   const imageURL: string = req.body.imageURL;
   const description: string = req.body.description;
   const price: number = req.body.price;
-  const createdBy = req.user!.id;
+  const createdBy = req.session!.user.id;
   const product = new Product(
     title,
     imageURL,
@@ -32,25 +39,31 @@ const postAddProduct = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const getProducts = (req: Request, res: Response, next: NextFunction) => {
-  const userID = req.user!.id;
+  if (!req.session!.isLoggedIn) {
+    return res.redirect('/');
+  }
+
+  const userID = req.session!.user.id;
   Product.fetchAll()
     .then(products => {
       products = products.filter(p => p.createdByUser === userID);
       res.render('admin/products', {
         products: products,
         pageTitle: 'Admin Products',
-        path: 'admin/products'
+        path: 'admin/products',
+        isLoggedIn: req.session!.isLoggedIn
       });
     })
     .catch(err => console.log(err));
 };
 
 const getEditProduct = (req: Request, res: Response, next: NextFunction) => {
-  if (req.query.edit !== 'true') {
+  if (!req.session!.isLoggedIn || req.query.edit !== 'true') {
     return res.redirect('/');
   }
+
   const productID = parseInt(req.params.productID);
-  const userID = req.user!.id;
+  const userID = req.session!.user.id;
   Product.findByID(productID)
     .then(product => {
       if (product === undefined || product.createdByUser !== userID) {
@@ -60,15 +73,20 @@ const getEditProduct = (req: Request, res: Response, next: NextFunction) => {
       res.render('admin/edit-product', {
         pageTitle: 'Edit Product',
         path: 'admin/edit-product',
-        product: product
+        product: product,
+        isLoggedIn: req.session!.isLoggedIn
       });
     })
     .catch(err => console.log(err));
 };
 
 const postEditProduct = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session!.isLoggedIn) {
+    return res.redirect('/');
+  }
+
   const productID = parseInt(req.body.productID);
-  const userID = req.user!.id;
+  const userID = req.session!.user.id;
   Product.findByID(productID)
     .then(product => {
       if (product === undefined || product.createdByUser !== userID) {
@@ -90,8 +108,12 @@ const postEditProduct = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const postDeleteProduct = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session!.isLoggedIn) {
+    return res.redirect('/');
+  }
+
   const productID = req.body.productID;
-  const userID = req.user!.id;
+  const userID = req.session!.user.id;
 
   Product.findByID(productID)
     .then(async product => {

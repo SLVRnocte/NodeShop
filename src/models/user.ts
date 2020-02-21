@@ -33,6 +33,19 @@ class User implements IDatabaseModel {
     );
   }
 
+  static createGuest = (): Promise<User> => {
+    return new Promise<User>(resolve => {
+      const user = new User('Guest', 'Guest@guest');
+      user.save().then(() => {
+        resolve(user);
+      });
+    });
+  };
+
+  testme() {
+    return this.email;
+  }
+
   async save(): Promise<QueryResult> {
     // Does the user exist in the app
     let result = !isNaN(this.id);

@@ -25,4 +25,4 @@ router.post(
 
 /*exports.routes = router;
 exports.products = products;*/
-export { router as routes };
+export default router;
