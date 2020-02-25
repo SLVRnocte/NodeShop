@@ -11,8 +11,7 @@ const getIndex = (req: Request, res: Response, next: NextFunction) => {
       res.render('shop/index', {
         products: result,
         pageTitle: 'Shop',
-        path: 'shop',
-        isLoggedIn: req.session!.isLoggedIn
+        path: 'shop'
       });
     })
     .catch(err => console.log(err));
@@ -24,23 +23,24 @@ const getProducts = (req: Request, res: Response, next: NextFunction) => {
       res.render('shop/product-list', {
         products: result,
         pageTitle: 'All Products',
-        path: 'products',
-        isLoggedIn: req.session!.isLoggedIn
+        path: 'products'
       });
     })
     .catch(err => console.log(err));
 };
 
 const getProduct = (req: Request, res: Response, next: NextFunction) => {
-  const productID = req.params.productID;
-  Product.findByID(parseInt(productID))
+  const productID = parseInt(req.params.productID);
+  if (isNaN(productID)) {
+    return res.redirect('/');
+  }
+  Product.findByID(productID)
     .then(result => {
       if (result !== undefined) {
         res.render('shop/product-detail', {
           product: result,
           pageTitle: result.title,
-          path: 'products',
-          isLoggedIn: req.session!.isLoggedIn
+          path: 'products'
         });
       } else {
         res.redirect('/');
@@ -50,7 +50,8 @@ const getProduct = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const getCart = async (req: Request, res: Response, next: NextFunction) => {
-  const cart = new Cart(req.session!);
+  const session = req.session!;
+  const cart = new Cart(session);
 
   cart
     .load()
@@ -60,8 +61,7 @@ const getCart = async (req: Request, res: Response, next: NextFunction) => {
           pageTitle: 'Shopping Cart',
           path: 'cart',
           cartProducts: cart.cartProducts,
-          totalPrice: totalPrice.toFixed(2),
-          isLoggedIn: req.session!.isLoggedIn
+          totalPrice: totalPrice.toFixed(2)
         });
       });
     })
@@ -70,6 +70,9 @@ const getCart = async (req: Request, res: Response, next: NextFunction) => {
 
 const postCart = (req: Request, res: Response, next: NextFunction) => {
   const productID = parseInt(req.body.productID);
+  if (isNaN(productID)) {
+    return res.redirect('/cart');
+  }
   const cart = new Cart(req.session!);
 
   cart.load().then(() => {
@@ -85,6 +88,9 @@ const postCartDeleteItem = (
   next: NextFunction
 ) => {
   const productID = parseInt(req.body.productID);
+  if (isNaN(productID)) {
+    return res.redirect('/cart');
+  }
   const cart = new Cart(req.session!);
 
   cart.load().then(() => {
@@ -100,6 +106,9 @@ const postCartModifiyItemQuantity = (
   next: NextFunction
 ) => {
   const productID = parseInt(req.body.productID);
+  if (isNaN(productID)) {
+    return res.redirect('/cart');
+  }
   const cart = new Cart(req.session!);
   const modifyType = req.body.modifyType;
 
@@ -122,8 +131,7 @@ const getOrders = (req: Request, res: Response, next: NextFunction) => {
     res.render('shop/orders', {
       pageTitle: 'Your Orders',
       path: 'orders',
-      orders: orders,
-      isLoggedIn: req.session!.isLoggedIn
+      orders: orders
     });
   });
 };
@@ -144,24 +152,16 @@ const postOrder = (req: Request, res: Response, next: NextFunction) => {
       return newOrder.save().then(() => {
         return cart.delete();
       });
-      // cart.addProduct(productID).then(() => {
-      //   res.redirect('/cart');
-      // });
     })
     .then(() => {
-      res.render('shop/orders', {
-        pageTitle: 'Your Orders',
-        path: 'orders',
-        isLoggedIn: req.session!.isLoggedIn
-      });
+      res.redirect('/orders');
     });
 };
 
 const getCheckout = (req: Request, res: Response, next: NextFunction) => {
   res.render('shop/checkout', {
     pageTitle: 'Checkout',
-    path: 'checkout',
-    isLoggedIn: req.session!.isLoggedIn
+    path: 'checkout'
   });
 };
 

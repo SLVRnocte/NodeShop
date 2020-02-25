@@ -3,20 +3,17 @@ import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import express from 'express';
 import session from 'express-session';
-const pgSession = require('connect-pg-simple')(session);
-
 import { Request, Response, NextFunction } from 'express';
-
-import * as errorController from './controllers/error';
+const pgSession = require('connect-pg-simple')(session);
+import csurf from 'csurf';
+import flash from 'connect-flash';
 
 import adminRoutes from './routes/admin';
 import shopRoutes from './routes/shop';
 import authRoutes from './routes/auth';
 
-import {
-  DatabaseController as db,
-  DatabaseController
-} from './controllers/database';
+import * as errorController from './controllers/error';
+import { DatabaseController as db } from './controllers/database';
 import { User } from './models/user';
 import { setUser } from './controllers/auth';
 
@@ -36,7 +33,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(
   session({
     store: new pgSession({
-      pool: DatabaseController.pool
+      pool: db.pool
     }),
     secret: process.env.SESSIONSECRET!,
     resave: false,
@@ -45,18 +42,24 @@ app.use(
   })
 );
 
-// Session does not store literal User object
-// Recreate it and set the current user in the app
+// Every browser will be a guest by default, the guest gets deleted
 app.use(async (req: Request, res: Response, next: NextFunction) => {
-  if (req.session!.user !== undefined) {
-    await User.findByID(req.session!.user.id)
-      .then(async user => {
-        await setUser(req.session!, user);
-      })
-      .catch(err => console.log(err));
+  if (req.session!.user === undefined) {
+    await User.createGuest().then(async guest => {
+      await setUser(req.session!, guest);
+    });
   }
 
   next();
+});
+
+app.use(csurf());
+app.use(flash());
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  (res.locals.isLoggedIn = req.session!.isLoggedIn),
+    (res.locals.csrfToken = req.csrfToken()),
+    next();
 });
 
 app.use(adminRoutes);

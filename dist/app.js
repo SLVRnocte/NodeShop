@@ -25,10 +25,12 @@ const body_parser_1 = __importDefault(require("body-parser"));
 const express_1 = __importDefault(require("express"));
 const express_session_1 = __importDefault(require("express-session"));
 const pgSession = require('connect-pg-simple')(express_session_1.default);
-const errorController = __importStar(require("./controllers/error"));
+const csurf_1 = __importDefault(require("csurf"));
+const connect_flash_1 = __importDefault(require("connect-flash"));
 const admin_1 = __importDefault(require("./routes/admin"));
 const shop_1 = __importDefault(require("./routes/shop"));
 const auth_1 = __importDefault(require("./routes/auth"));
+const errorController = __importStar(require("./controllers/error"));
 const database_1 = require("./controllers/database");
 const user_1 = require("./models/user");
 const auth_2 = require("./controllers/auth");
@@ -50,18 +52,22 @@ app.use(express_session_1.default({
     saveUninitialized: false,
     cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 } // 30 days
 }));
-// Session does not store literal User object
-// Recreate it and set the current user in the app
+// Every browser will be a guest by default, the guest gets deleted
 app.use((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    if (req.session.user !== undefined) {
-        yield user_1.User.findByID(req.session.user.id)
-            .then((user) => __awaiter(void 0, void 0, void 0, function* () {
-            yield auth_2.setUser(req.session, user);
-        }))
-            .catch(err => console.log(err));
+    if (req.session.user === undefined) {
+        yield user_1.User.createGuest().then((guest) => __awaiter(void 0, void 0, void 0, function* () {
+            yield auth_2.setUser(req.session, guest);
+        }));
     }
     next();
 }));
+app.use(csurf_1.default());
+app.use(connect_flash_1.default());
+app.use((req, res, next) => {
+    (res.locals.isLoggedIn = req.session.isLoggedIn),
+        (res.locals.csrfToken = req.csrfToken()),
+        next();
+});
 app.use(admin_1.default);
 app.use(shop_1.default);
 app.use(auth_1.default);

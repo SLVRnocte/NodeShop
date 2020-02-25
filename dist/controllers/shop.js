@@ -18,8 +18,7 @@ const getIndex = (req, res, next) => {
         res.render('shop/index', {
             products: result,
             pageTitle: 'Shop',
-            path: 'shop',
-            isLoggedIn: req.session.isLoggedIn
+            path: 'shop'
         });
     })
         .catch(err => console.log(err));
@@ -31,23 +30,24 @@ const getProducts = (req, res, next) => {
         res.render('shop/product-list', {
             products: result,
             pageTitle: 'All Products',
-            path: 'products',
-            isLoggedIn: req.session.isLoggedIn
+            path: 'products'
         });
     })
         .catch(err => console.log(err));
 };
 exports.getProducts = getProducts;
 const getProduct = (req, res, next) => {
-    const productID = req.params.productID;
-    product_1.Product.findByID(parseInt(productID))
+    const productID = parseInt(req.params.productID);
+    if (isNaN(productID)) {
+        return res.redirect('/');
+    }
+    product_1.Product.findByID(productID)
         .then(result => {
         if (result !== undefined) {
             res.render('shop/product-detail', {
                 product: result,
                 pageTitle: result.title,
-                path: 'products',
-                isLoggedIn: req.session.isLoggedIn
+                path: 'products'
             });
         }
         else {
@@ -58,7 +58,8 @@ const getProduct = (req, res, next) => {
 };
 exports.getProduct = getProduct;
 const getCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const cart = new cart_1.Cart(req.session);
+    const session = req.session;
+    const cart = new cart_1.Cart(session);
     cart
         .load()
         .then(() => {
@@ -67,8 +68,7 @@ const getCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* 
                 pageTitle: 'Shopping Cart',
                 path: 'cart',
                 cartProducts: cart.cartProducts,
-                totalPrice: totalPrice.toFixed(2),
-                isLoggedIn: req.session.isLoggedIn
+                totalPrice: totalPrice.toFixed(2)
             });
         });
     })
@@ -77,6 +77,9 @@ const getCart = (req, res, next) => __awaiter(void 0, void 0, void 0, function* 
 exports.getCart = getCart;
 const postCart = (req, res, next) => {
     const productID = parseInt(req.body.productID);
+    if (isNaN(productID)) {
+        return res.redirect('/cart');
+    }
     const cart = new cart_1.Cart(req.session);
     cart.load().then(() => {
         cart.addProduct(productID).then(() => {
@@ -87,6 +90,9 @@ const postCart = (req, res, next) => {
 exports.postCart = postCart;
 const postCartDeleteItem = (req, res, next) => {
     const productID = parseInt(req.body.productID);
+    if (isNaN(productID)) {
+        return res.redirect('/cart');
+    }
     const cart = new cart_1.Cart(req.session);
     cart.load().then(() => {
         cart.deleteProduct(productID).then(() => {
@@ -97,6 +103,9 @@ const postCartDeleteItem = (req, res, next) => {
 exports.postCartDeleteItem = postCartDeleteItem;
 const postCartModifiyItemQuantity = (req, res, next) => {
     const productID = parseInt(req.body.productID);
+    if (isNaN(productID)) {
+        return res.redirect('/cart');
+    }
     const cart = new cart_1.Cart(req.session);
     const modifyType = req.body.modifyType;
     cart.load().then(() => {
@@ -114,8 +123,7 @@ const getOrders = (req, res, next) => {
         res.render('shop/orders', {
             pageTitle: 'Your Orders',
             path: 'orders',
-            orders: orders,
-            isLoggedIn: req.session.isLoggedIn
+            orders: orders
         });
     });
 };
@@ -135,24 +143,16 @@ const postOrder = (req, res, next) => {
         return newOrder.save().then(() => {
             return cart.delete();
         });
-        // cart.addProduct(productID).then(() => {
-        //   res.redirect('/cart');
-        // });
     }))
         .then(() => {
-        res.render('shop/orders', {
-            pageTitle: 'Your Orders',
-            path: 'orders',
-            isLoggedIn: req.session.isLoggedIn
-        });
+        res.redirect('/orders');
     });
 };
 exports.postOrder = postOrder;
 const getCheckout = (req, res, next) => {
     res.render('shop/checkout', {
         pageTitle: 'Checkout',
-        path: 'checkout',
-        isLoggedIn: req.session.isLoggedIn
+        path: 'checkout'
     });
 };
 exports.getCheckout = getCheckout;

@@ -35,6 +35,7 @@
             <input type="hidden" name="productID" value="<%= product.id %>">
             <% } %>
 
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <button class="btn" type="submit"><% if (path === "admin/edit-product"){ %>
                 Update Product
                 <% } else { %>

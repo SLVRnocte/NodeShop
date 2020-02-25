@@ -74,13 +74,6 @@ class Cart implements IDatabaseModel {
   }
 
   async load(): Promise<void> {
-    if (this.belongsToUser === undefined) {
-      await User.createGuest().then(async guest => {
-        this.belongsToUser = guest;
-        await setUser(this.session, guest);
-      });
-    }
-
     return new Promise<void>(resolve => {
       db.query(`SELECT * FROM ${Cart.tableName} WHERE belongsToUser=$1`, [
         this.belongsToUser!.id
@@ -89,6 +82,7 @@ class Cart implements IDatabaseModel {
           // This user has no cart yet
           if (result.rowCount === 0) {
             await this.save(); // this assigns id
+
             resolve();
           } else {
             this.id = result.rows[0].id;
@@ -96,7 +90,10 @@ class Cart implements IDatabaseModel {
 
             CartProduct.fetchAllBelongingToCart(this.id)
               .then(result => {
-                this.cartProducts = result;
+                // Sort cartProducts by the time they were added to the cart
+                this.cartProducts = result.sort((a, b) => {
+                  return +new Date(a.createdAt!) - +new Date(b.createdAt!);
+                });
 
                 resolve();
               })

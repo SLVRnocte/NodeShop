@@ -14,9 +14,11 @@ const product_1 = require("./product");
 const cart_1 = require("./cart");
 //@staticImplements<IDatabaseModelStatic>()
 class CartProduct {
-    constructor(belongsToCart, quantity, id) {
+    constructor(belongsToCart, quantity, createdAt, id) {
+        this.createdAt = undefined; // so we can sort by whichever products were added first
         this.product = new product_1.Product('', '', '', 0);
         this.id = id !== undefined ? id : NaN;
+        this.createdAt = createdAt !== undefined ? createdAt : undefined;
         this.belongsToCart = belongsToCart;
         this.quantity = quantity;
     }
@@ -101,7 +103,8 @@ class CartProduct {
             if (dbProduct === undefined) {
                 return undefined;
             }
-            const cartProduct = new CartProduct(dbProduct.belongsToCart, dbProduct.quantity, dbProduct.id);
+            const cartProduct = new CartProduct(dbProduct.belongsToCart, dbProduct.quantity, dbProduct.createdat, // so we can sort by whichever products were added first
+            dbProduct.id);
             yield cartProduct.setup(dbProduct.productid);
             return cartProduct;
         });

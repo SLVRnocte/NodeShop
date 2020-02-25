@@ -14,6 +14,7 @@ import { promises } from 'dns';
 //@staticImplements<IDatabaseModelStatic>()
 class CartProduct implements IDatabaseModel {
   id: number;
+  createdAt: Date | undefined = undefined; // so we can sort by whichever products were added first
   belongsToCart: number;
   quantity: number;
   product: Product = new Product('', '', '', 0);
@@ -33,8 +34,14 @@ class CartProduct implements IDatabaseModel {
     );
   }
 
-  constructor(belongsToCart: number, quantity: number, id?: number) {
+  constructor(
+    belongsToCart: number,
+    quantity: number,
+    createdAt?: Date,
+    id?: number
+  ) {
     this.id = id !== undefined ? id : NaN;
+    this.createdAt = createdAt !== undefined ? createdAt : undefined;
     this.belongsToCart = belongsToCart;
     this.quantity = quantity;
   }
@@ -128,6 +135,7 @@ class CartProduct implements IDatabaseModel {
     const cartProduct = new CartProduct(
       dbProduct.belongsToCart,
       dbProduct.quantity,
+      dbProduct.createdat, // so we can sort by whichever products were added first
       dbProduct.id
     );
 

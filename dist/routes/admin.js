@@ -12,14 +12,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const adminController = __importStar(require("../controllers/admin"));
+const is_auth_1 = __importDefault(require("../middleware/is-auth"));
 const router = express_1.default.Router();
 const adminURLPrefix = '/admin';
-router.get(`${adminURLPrefix}/add-product`, adminController.getAddProduct);
-router.get(`${adminURLPrefix}/products`, adminController.getProducts);
-router.post(`${adminURLPrefix}/add-product`, adminController.postAddProduct);
-router.get(`${adminURLPrefix}/edit-product/:productID`, adminController.getEditProduct);
-router.post(`${adminURLPrefix}/edit-product`, adminController.postEditProduct);
-router.post(`${adminURLPrefix}/delete-product`, adminController.postDeleteProduct);
+router.get(`${adminURLPrefix}/add-product`, is_auth_1.default, adminController.getAddProduct);
+router.get(`${adminURLPrefix}/products`, is_auth_1.default, adminController.getProducts);
+router.post(`${adminURLPrefix}/add-product`, is_auth_1.default, adminController.postAddProduct);
+router.get(`${adminURLPrefix}/edit-product/:productID`, is_auth_1.default, adminController.getEditProduct);
+router.post(`${adminURLPrefix}/edit-product`, is_auth_1.default, adminController.postEditProduct);
+router.post(`${adminURLPrefix}/delete-product`, is_auth_1.default, adminController.postDeleteProduct);
 /*exports.routes = router;
 exports.products = products;*/
 exports.default = router;

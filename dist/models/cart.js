@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const database_1 = require("../controllers/database");
 const cartProduct_1 = require("./cartProduct");
 const user_1 = require("./user");
-const auth_1 = require("../controllers/auth");
 //@staticImplements<IDatabaseModelStatic>()
 class Cart {
     constructor(session) {
@@ -65,12 +64,6 @@ class Cart {
     }
     load() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (this.belongsToUser === undefined) {
-                yield user_1.User.createGuest().then((guest) => __awaiter(this, void 0, void 0, function* () {
-                    this.belongsToUser = guest;
-                    yield auth_1.setUser(this.session, guest);
-                }));
-            }
             return new Promise(resolve => {
                 database_1.DatabaseController.query(`SELECT * FROM ${Cart.tableName} WHERE belongsToUser=$1`, [
                     this.belongsToUser.id
@@ -86,7 +79,10 @@ class Cart {
                         // get all cartItems with this id, populate array
                         cartProduct_1.CartProduct.fetchAllBelongingToCart(this.id)
                             .then(result => {
-                            this.cartProducts = result;
+                            // Sort cartProducts by the time they were added to the cart
+                            this.cartProducts = result.sort((a, b) => {
+                                return +new Date(a.createdAt) - +new Date(b.createdAt);
+                            });
                             resolve();
                         })
                             .catch(err => console.log(err));
