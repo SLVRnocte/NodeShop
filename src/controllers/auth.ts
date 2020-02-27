@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import * as bcrypt from 'bcryptjs';
+
 import { User } from '../models/user';
 import { DatabaseController as db } from '../controllers/database';
+import { mailer } from '../controllers/mailer';
 
 const setUser = async (session: Express.Session, user: User): Promise<void> => {
   session.user = user;
@@ -116,6 +118,14 @@ const postSignup = (req: Request, res: Response, next: NextFunction) => {
         })
         .then(() => {
           res.redirect('/login');
+          return mailer.sendMail({
+            to: email,
+            from: 'shop@NodeShop.dev',
+            subject: 'Signup succeeded!',
+            html: `<h1>Thank you for signing up in my NodeShop project, ${name}!</h1>
+            <p>You can start using the shop right away!</p>
+            <p>In case you have any questions you can reach me on GitHub: <a href="https://github.com/SLVRnocte/">https://github.com/SLVRnocte/</a></p>`
+          });
         })
         .catch(err => console.log(err));
     }

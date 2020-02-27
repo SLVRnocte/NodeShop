@@ -19,6 +19,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const bcrypt = __importStar(require("bcryptjs"));
 const user_1 = require("../models/user");
 const database_1 = require("../controllers/database");
+const mailer_1 = require("../controllers/mailer");
 const setUser = (session, user) => __awaiter(void 0, void 0, void 0, function* () {
     session.user = user;
     session.isLoggedIn =
@@ -123,6 +124,14 @@ const postSignup = (req, res, next) => {
         })
             .then(() => {
             res.redirect('/login');
+            return mailer_1.mailer.sendMail({
+                to: email,
+                from: 'shop@NodeShop.dev',
+                subject: 'Signup succeeded!',
+                html: `<h1>Thank you for signing up in my NodeShop project, ${name}!</h1>
+            <p>You can start using the shop right away!</p>
+            <p>In case you have any questions you can reach me on GitHub: <a href="https://github.com/SLVRnocte/">https://github.com/SLVRnocte/</a></p>`
+            });
         })
             .catch(err => console.log(err));
     });

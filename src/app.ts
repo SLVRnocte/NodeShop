@@ -14,6 +14,7 @@ import authRoutes from './routes/auth';
 
 import * as errorController from './controllers/error';
 import { DatabaseController as db } from './controllers/database';
+import { init as mailerInit } from './controllers/mailer';
 import { User } from './models/user';
 import { setUser } from './controllers/auth';
 
@@ -68,6 +69,7 @@ app.use(authRoutes);
 
 app.use('/', errorController.get404);
 
+mailerInit();
 db.init()
   .then(() => {
     app.listen(3000, () => console.log('Node server listening!'));

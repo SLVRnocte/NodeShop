@@ -32,6 +32,7 @@ const shop_1 = __importDefault(require("./routes/shop"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const errorController = __importStar(require("./controllers/error"));
 const database_1 = require("./controllers/database");
+const mailer_1 = require("./controllers/mailer");
 const user_1 = require("./models/user");
 const auth_2 = require("./controllers/auth");
 // Init dotenv
@@ -72,6 +73,7 @@ app.use(admin_1.default);
 app.use(shop_1.default);
 app.use(auth_1.default);
 app.use('/', errorController.get404);
+mailer_1.init();
 database_1.DatabaseController.init()
     .then(() => {
     app.listen(3000, () => console.log('Node server listening!'));
