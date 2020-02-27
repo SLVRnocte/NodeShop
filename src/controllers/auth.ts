@@ -118,7 +118,7 @@ const postSignup = (req: Request, res: Response, next: NextFunction) => {
         })
         .then(() => {
           res.redirect('/login');
-          return mailer.sendMail({
+          return mailer.send({
             to: email,
             from: 'shop@NodeShop.dev',
             subject: 'Signup succeeded!',
