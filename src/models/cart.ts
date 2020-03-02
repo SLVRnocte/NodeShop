@@ -9,7 +9,6 @@ import { QueryResult } from 'pg';
 
 import { CartProduct } from './cartProduct';
 import { User } from './user';
-import { setUser } from '../controllers/auth';
 
 //@staticImplements<IDatabaseModelStatic>()
 class Cart implements IDatabaseModel {

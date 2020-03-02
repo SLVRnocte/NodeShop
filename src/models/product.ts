@@ -116,14 +116,19 @@ class Product implements IDatabaseModel {
     });
   }
 
-  static findByID(id: number): Promise<Product> {
+  static findByColumn(column: string, value: any): Promise<Product> {
     return new Promise<any>(resolve => {
-      db.query(`SELECT * FROM ${Product.tableName} WHERE id=$1`, [id])
+      db.query(`SELECT * FROM ${Product.tableName} WHERE ${column}=$1`, [value])
         .then(result => {
           resolve(this.createInstanceFromDB(result.rows[0]));
         })
         .catch(err => console.log(err));
     });
+  }
+
+  // Convenience
+  static findByID(id: number): Promise<Product> {
+    return this.findByColumn('id', id);
   }
 
   static findByUser(user: User): Promise<Product[]> {

@@ -57,6 +57,9 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
 app.use(csurf());
 app.use(flash());
 
+// Set a new csrfToken for every single request.
+// The csrfToken only gets checked on every POST request through the views
+// such as on navigation.ejs (logout button), add-to-cart.ejs and so on.
 app.use((req: Request, res: Response, next: NextFunction) => {
   (res.locals.isLoggedIn = req.session!.isLoggedIn),
     (res.locals.csrfToken = req.csrfToken()),

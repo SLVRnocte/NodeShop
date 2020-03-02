@@ -10,7 +10,7 @@ interface IDatabaseModelStatic {
   tableName: string;
   init(databaseController: db): Promise<QueryResult> | undefined;
   fetchAll(): Promise<any[]>;
-  findByID(id: number): Promise<any>;
+  findByColumn(column: string, value: any): Promise<any | undefined>;
   createInstanceFromDB(dbProduct: any): any | undefined;
 }
 

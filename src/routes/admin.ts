@@ -38,6 +38,4 @@ router.post(
   adminController.postDeleteProduct
 );
 
-/*exports.routes = router;
-exports.products = products;*/
 export default router;

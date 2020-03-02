@@ -93,14 +93,18 @@ let Product = Product_1 = class Product {
                 .catch(err => console.log(err));
         });
     }
-    static findByID(id) {
+    static findByColumn(column, value) {
         return new Promise(resolve => {
-            database_1.DatabaseController.query(`SELECT * FROM ${Product_1.tableName} WHERE id=$1`, [id])
+            database_1.DatabaseController.query(`SELECT * FROM ${Product_1.tableName} WHERE ${column}=$1`, [value])
                 .then(result => {
                 resolve(this.createInstanceFromDB(result.rows[0]));
             })
                 .catch(err => console.log(err));
         });
+    }
+    // Convenience
+    static findByID(id) {
+        return this.findByColumn('id', id);
     }
     static findByUser(user) {
         return new Promise(resolve => {

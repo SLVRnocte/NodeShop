@@ -20,11 +20,13 @@ const staticImplements_1 = require("../util/staticImplements");
 const database_1 = require("../controllers/database");
 const uuid_1 = require("uuid");
 let User = User_1 = class User {
-    constructor(name, email, hashedPassword, id) {
+    constructor(name, email, hashedPassword, id, resetToken, resetTokenExpiryDate) {
         this.id = id !== undefined ? id : NaN;
         this.name = name;
         this.email = email;
         this.hashedPassword = hashedPassword;
+        this.resetToken = resetToken;
+        this.resetTokenExpiryDate = resetTokenExpiryDate;
     }
     static init(databaseController) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -33,6 +35,8 @@ let User = User_1 = class User {
           name VARCHAR(255) NOT NULL,
           email VARCHAR(255) NOT NULL,
           password VARCHAR(255) NOT NULL,
+          resetToken VARCHAR(255),
+          resetTokenExpiryDate TIMESTAMPTZ,
           updatedAt TIMESTAMPTZ NOT NULL,
           createdAt TIMESTAMPTZ NOT NULL
         )`);
@@ -63,7 +67,15 @@ let User = User_1 = class User {
                 });
             }
             else {
-                return database_1.DatabaseController.query(`UPDATE ${User_1.tableName} SET name=$1, email=$2, password=$3, updatedAt=$4 WHERE id=$5`, [this.name, this.email, this.hashedPassword, now, this.id]);
+                return database_1.DatabaseController.query(`UPDATE ${User_1.tableName} SET name=$1, email=$2, password=$3, resetToken=$4, resetTokenExpiryDate=$5, updatedAt=$6 WHERE id=$7`, [
+                    this.name,
+                    this.email,
+                    this.hashedPassword,
+                    this.resetToken,
+                    this.resetTokenExpiryDate,
+                    now,
+                    this.id
+                ]);
             }
         });
     }
@@ -83,20 +95,24 @@ let User = User_1 = class User {
                 .catch(err => console.log(err));
         });
     }
-    static findByID(id) {
+    static findByColumn(column, value) {
         return new Promise(resolve => {
-            database_1.DatabaseController.query(`SELECT * FROM ${User_1.tableName} WHERE id=$1`, [id])
+            database_1.DatabaseController.query(`SELECT * FROM ${User_1.tableName} WHERE ${column}=$1`, [value])
                 .then(result => {
                 resolve(this.createInstanceFromDB(result.rows[0]));
             })
                 .catch(err => console.log(err));
         });
     }
+    // Convenience
+    static findByEmail(email) {
+        return this.findByColumn('email', email);
+    }
     static createInstanceFromDB(dbProduct) {
         if (dbProduct === undefined) {
             return undefined;
         }
-        return new User_1(dbProduct.name, dbProduct.email, dbProduct.password, dbProduct.id);
+        return new User_1(dbProduct.name, dbProduct.email, dbProduct.password, dbProduct.id, dbProduct.resettoken, dbProduct.resettokenexpirydate);
     }
 };
 User.tableName = 'Users';

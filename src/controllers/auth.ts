@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
 
 import { User } from '../models/user';
@@ -25,7 +26,8 @@ const getLogin = (req: Request, res: Response, next: NextFunction) => {
   res.render('auth/login', {
     pageTitle: 'Login',
     path: 'login',
-    errorMsg: req.flash('error').toString()
+    errorMsg: req.flash('error').toString(),
+    successMsg: req.flash('success').toString()
   });
 };
 
@@ -34,21 +36,20 @@ const postLogin = (req: Request, res: Response, next: NextFunction) => {
   const password = req.body.password;
 
   db.query(`SELECT * FROM users WHERE email=$1`, [email]).then(r => {
-    if (r.rows[0] === undefined) {
+    const dbUser = r.rows[0];
+    if (dbUser === undefined) {
       req.flash('error', 'Invalid E-Mail.');
       return res.redirect('/login');
     }
 
     bcrypt
-      .compare(password, r.rows[0].password)
-      .then(match => {
+      .compare(password, dbUser.password)
+      .then(async match => {
         if (match) {
-          User.findByID(r.rows[0].id)
-            .then(async user => {
-              await setUser(req.session!, user);
-              return res.redirect('/');
-            })
-            .catch(err => console.log(err));
+          const user = User.createInstanceFromDB(dbUser);
+          await setUser(req.session!, user!);
+
+          return res.redirect('/');
         } else {
           // failed, back to login
           req.flash('error', 'Invalid password.');
@@ -62,9 +63,9 @@ const postLogin = (req: Request, res: Response, next: NextFunction) => {
   });
 };
 
-const postLogout = (req: Request, res: Response, next: NextFunction) => {
+const postLogout = async (req: Request, res: Response, next: NextFunction) => {
   if (req.session !== undefined) {
-    logout(req.session);
+    await logout(req.session);
   }
 
   res.redirect('/');
@@ -117,6 +118,10 @@ const postSignup = (req: Request, res: Response, next: NextFunction) => {
           return user.save();
         })
         .then(() => {
+          req.flash(
+            'success',
+            'Success, your account has been created. You can login now.'
+          );
           res.redirect('/login');
           return mailer.send({
             to: email,
@@ -132,4 +137,131 @@ const postSignup = (req: Request, res: Response, next: NextFunction) => {
   );
 };
 
-export { setUser, getLogin, postLogin, postLogout, getSignup, postSignup };
+const getResetPassword = (req: Request, res: Response, next: NextFunction) => {
+  res.render('auth/request-reset-password', {
+    pageTitle: 'Reset Password',
+    path: 'reset-password',
+    errorMsg: req.flash('error').toString()
+  });
+};
+
+const postResetPassword = (req: Request, res: Response, next: NextFunction) => {
+  User.findByEmail(req.body.email).then(user => {
+    if (user === undefined) {
+      req.flash('error', 'No account with that E-Mail found.');
+      return res.redirect('/reset-password');
+    }
+
+    crypto.randomBytes(32, (err, tokenBuffer) => {
+      if (err) {
+        console.log(err);
+        return res.redirect('/reset-password');
+      }
+
+      const token = tokenBuffer.toString('hex');
+      user.resetToken = token;
+      const now = new Date();
+      user.resetTokenExpiryDate = new Date(
+        now.setMinutes(now.getMinutes() + 60)
+      );
+      user
+        .save()
+        .then(() => {
+          res.redirect('/');
+          return mailer.send({
+            to: user.email,
+            from: 'shop@NodeShop.dev',
+            subject: 'Password reset link',
+            html: `<p>Click <a href="http://${req.headers.host}${req.url}/${token}">this link</a> to reset your password.</p>
+            <p>Please ignore this email if you have not requested this.</p>`
+          });
+        })
+        .catch(err => {
+          console.log(err);
+        });
+    });
+  });
+};
+
+const getNewPassword = (req: Request, res: Response, next: NextFunction) => {
+  const resetToken = req.params.token;
+
+  User.findByColumn('resettoken', resetToken)
+    .then(user => {
+      if (user === undefined || user.resetTokenExpiryDate! < new Date()) {
+        req.flash(
+          'error',
+          `The password reset link has expired. <br>
+          Please request a new one.`
+        );
+
+        return res.redirect('/reset-password');
+      }
+
+      res.render('auth/new-password', {
+        pageTitle: 'Reset Password',
+        path: 'new-password',
+        errorMsg: req.flash('error').toString(),
+        userID: user.id,
+        resetToken: resetToken
+      });
+    })
+    .catch(err => console.log(err));
+};
+
+const postNewPassword = (req: Request, res: Response, next: NextFunction) => {
+  const userID = req.body.userID;
+  const resetToken = req.body.resetToken;
+  const password = req.body.password;
+  const confirmPassword = req.body.confirmPassword;
+
+  if (password !== confirmPassword) {
+    req.flash('error', 'Passwords do not match.');
+
+    return res.redirect(req.headers.referer!);
+  }
+
+  User.findByColumn('resettoken', resetToken)
+    .then(user => {
+      if (user === undefined || user.resetTokenExpiryDate! < new Date()) {
+        req.flash(
+          'error',
+          `The password reset link has expired. <br>
+          Please request a new one.`
+        );
+
+        return res.redirect('/reset-password');
+      }
+
+      bcrypt
+        .hash(password, 12)
+        .then(hashedPw => {
+          user.hashedPassword = hashedPw;
+          user.resetToken = undefined;
+          user.resetTokenExpiryDate = undefined;
+          return user.save();
+        })
+        .then(() => {
+          req.flash(
+            'success',
+            'Success. You can login with your new password now.'
+          );
+          res.redirect('/login');
+        })
+        .catch(err => console.log(err));
+    })
+    .catch(err => console.log(err));
+};
+
+export {
+  setUser,
+  getLogin,
+  postLogin,
+  postLogout,
+  getSignup,
+  postSignup,
+  getResetPassword,
+  postResetPassword,
+  getNewPassword,
+  postNewPassword
+};

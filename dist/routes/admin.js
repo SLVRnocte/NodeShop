@@ -21,7 +21,5 @@ router.post(`${adminURLPrefix}/add-product`, is_auth_1.default, adminController.
 router.get(`${adminURLPrefix}/edit-product/:productID`, is_auth_1.default, adminController.getEditProduct);
 router.post(`${adminURLPrefix}/edit-product`, is_auth_1.default, adminController.postEditProduct);
 router.post(`${adminURLPrefix}/delete-product`, is_auth_1.default, adminController.postDeleteProduct);
-/*exports.routes = router;
-exports.products = products;*/
 exports.default = router;
 //# sourceMappingURL=admin.js.map

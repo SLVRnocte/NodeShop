@@ -8,6 +8,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
@@ -16,6 +19,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const crypto_1 = __importDefault(require("crypto"));
 const bcrypt = __importStar(require("bcryptjs"));
 const user_1 = require("../models/user");
 const database_1 = require("../controllers/database");
@@ -38,7 +42,8 @@ const getLogin = (req, res, next) => {
     res.render('auth/login', {
         pageTitle: 'Login',
         path: 'login',
-        errorMsg: req.flash('error').toString()
+        errorMsg: req.flash('error').toString(),
+        successMsg: req.flash('success').toString()
     });
 };
 exports.getLogin = getLogin;
@@ -46,27 +51,25 @@ const postLogin = (req, res, next) => {
     const email = req.body.email;
     const password = req.body.password;
     database_1.DatabaseController.query(`SELECT * FROM users WHERE email=$1`, [email]).then(r => {
-        if (r.rows[0] === undefined) {
+        const dbUser = r.rows[0];
+        if (dbUser === undefined) {
             req.flash('error', 'Invalid E-Mail.');
             return res.redirect('/login');
         }
         bcrypt
-            .compare(password, r.rows[0].password)
-            .then(match => {
+            .compare(password, dbUser.password)
+            .then((match) => __awaiter(void 0, void 0, void 0, function* () {
             if (match) {
-                user_1.User.findByID(r.rows[0].id)
-                    .then((user) => __awaiter(void 0, void 0, void 0, function* () {
-                    yield setUser(req.session, user);
-                    return res.redirect('/');
-                }))
-                    .catch(err => console.log(err));
+                const user = user_1.User.createInstanceFromDB(dbUser);
+                yield setUser(req.session, user);
+                return res.redirect('/');
             }
             else {
                 // failed, back to login
                 req.flash('error', 'Invalid password.');
                 return res.redirect('/login');
             }
-        })
+        }))
             .catch(err => {
             console.log(err);
             return res.redirect('/login');
@@ -74,12 +77,12 @@ const postLogin = (req, res, next) => {
     });
 };
 exports.postLogin = postLogin;
-const postLogout = (req, res, next) => {
+const postLogout = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     if (req.session !== undefined) {
-        logout(req.session);
+        yield logout(req.session);
     }
     res.redirect('/');
-};
+});
 exports.postLogout = postLogout;
 const logout = (session) => {
     return new Promise(resolve => {
@@ -123,6 +126,7 @@ const postSignup = (req, res, next) => {
             return user.save();
         })
             .then(() => {
+            req.flash('success', 'Success, your account has been created. You can login now.');
             res.redirect('/login');
             return mailer_1.mailer.send({
                 to: email,
@@ -137,4 +141,99 @@ const postSignup = (req, res, next) => {
     });
 };
 exports.postSignup = postSignup;
+const getResetPassword = (req, res, next) => {
+    res.render('auth/request-reset-password', {
+        pageTitle: 'Reset Password',
+        path: 'reset-password',
+        errorMsg: req.flash('error').toString()
+    });
+};
+exports.getResetPassword = getResetPassword;
+const postResetPassword = (req, res, next) => {
+    user_1.User.findByEmail(req.body.email).then(user => {
+        if (user === undefined) {
+            req.flash('error', 'No account with that E-Mail found.');
+            return res.redirect('/reset-password');
+        }
+        crypto_1.default.randomBytes(32, (err, tokenBuffer) => {
+            if (err) {
+                console.log(err);
+                return res.redirect('/reset-password');
+            }
+            const token = tokenBuffer.toString('hex');
+            user.resetToken = token;
+            const now = new Date();
+            user.resetTokenExpiryDate = new Date(now.setMinutes(now.getMinutes() + 60));
+            user
+                .save()
+                .then(() => {
+                res.redirect('/');
+                return mailer_1.mailer.send({
+                    to: user.email,
+                    from: 'shop@NodeShop.dev',
+                    subject: 'Password reset link',
+                    html: `<p>Click <a href="http://${req.headers.host}${req.url}/${token}">this link</a> to reset your password.</p>
+            <p>Please ignore this email if you have not requested this.</p>`
+                });
+            })
+                .catch(err => {
+                console.log(err);
+            });
+        });
+    });
+};
+exports.postResetPassword = postResetPassword;
+const getNewPassword = (req, res, next) => {
+    const resetToken = req.params.token;
+    user_1.User.findByColumn('resettoken', resetToken)
+        .then(user => {
+        if (user === undefined || user.resetTokenExpiryDate < new Date()) {
+            req.flash('error', `The password reset link has expired. <br>
+          Please request a new one.`);
+            return res.redirect('/reset-password');
+        }
+        res.render('auth/new-password', {
+            pageTitle: 'Reset Password',
+            path: 'new-password',
+            errorMsg: req.flash('error').toString(),
+            userID: user.id,
+            resetToken: resetToken
+        });
+    })
+        .catch(err => console.log(err));
+};
+exports.getNewPassword = getNewPassword;
+const postNewPassword = (req, res, next) => {
+    const userID = req.body.userID;
+    const resetToken = req.body.resetToken;
+    const password = req.body.password;
+    const confirmPassword = req.body.confirmPassword;
+    if (password !== confirmPassword) {
+        req.flash('error', 'Passwords do not match.');
+        return res.redirect(req.headers.referer);
+    }
+    user_1.User.findByColumn('resettoken', resetToken)
+        .then(user => {
+        if (user === undefined || user.resetTokenExpiryDate < new Date()) {
+            req.flash('error', `The password reset link has expired. <br>
+          Please request a new one.`);
+            return res.redirect('/reset-password');
+        }
+        bcrypt
+            .hash(password, 12)
+            .then(hashedPw => {
+            user.hashedPassword = hashedPw;
+            user.resetToken = undefined;
+            user.resetTokenExpiryDate = undefined;
+            return user.save();
+        })
+            .then(() => {
+            req.flash('success', 'Success. You can login with your new password now.');
+            res.redirect('/login');
+        })
+            .catch(err => console.log(err));
+    })
+        .catch(err => console.log(err));
+};
+exports.postNewPassword = postNewPassword;
 //# sourceMappingURL=auth.js.map

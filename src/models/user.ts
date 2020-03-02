@@ -15,6 +15,8 @@ class User implements IDatabaseModel {
   name: string;
   email: string;
   hashedPassword: string;
+  resetToken: string | undefined;
+  resetTokenExpiryDate: Date | undefined;
 
   static tableName = 'Users';
 
@@ -22,12 +24,16 @@ class User implements IDatabaseModel {
     name: string,
     email: string,
     hashedPassword: string,
-    id?: number
+    id?: number,
+    resetToken?: string,
+    resetTokenExpiryDate?: Date
   ) {
     this.id = id !== undefined ? id : NaN;
     this.name = name;
     this.email = email;
     this.hashedPassword = hashedPassword;
+    this.resetToken = resetToken;
+    this.resetTokenExpiryDate = resetTokenExpiryDate;
   }
 
   static async init(databaseController: db): Promise<QueryResult> {
@@ -37,6 +43,8 @@ class User implements IDatabaseModel {
           name VARCHAR(255) NOT NULL,
           email VARCHAR(255) NOT NULL,
           password VARCHAR(255) NOT NULL,
+          resetToken VARCHAR(255),
+          resetTokenExpiryDate TIMESTAMPTZ,
           updatedAt TIMESTAMPTZ NOT NULL,
           createdAt TIMESTAMPTZ NOT NULL
         )`
@@ -81,8 +89,16 @@ class User implements IDatabaseModel {
       });
     } else {
       return db.query(
-        `UPDATE ${User.tableName} SET name=$1, email=$2, password=$3, updatedAt=$4 WHERE id=$5`,
-        [this.name, this.email, this.hashedPassword, now, this.id]
+        `UPDATE ${User.tableName} SET name=$1, email=$2, password=$3, resetToken=$4, resetTokenExpiryDate=$5, updatedAt=$6 WHERE id=$7`,
+        [
+          this.name,
+          this.email,
+          this.hashedPassword,
+          this.resetToken,
+          this.resetTokenExpiryDate,
+          now,
+          this.id
+        ]
       );
     }
   }
@@ -105,14 +121,19 @@ class User implements IDatabaseModel {
     });
   }
 
-  static findByID(id: number): Promise<User> {
+  static findByColumn(column: string, value: any): Promise<User | undefined> {
     return new Promise<any>(resolve => {
-      db.query(`SELECT * FROM ${User.tableName} WHERE id=$1`, [id])
+      db.query(`SELECT * FROM ${User.tableName} WHERE ${column}=$1`, [value])
         .then(result => {
           resolve(this.createInstanceFromDB(result.rows[0]));
         })
         .catch(err => console.log(err));
     });
+  }
+
+  // Convenience
+  static findByEmail(email: string): Promise<User | undefined> {
+    return this.findByColumn('email', email);
   }
 
   static createInstanceFromDB(dbProduct: any): User | undefined {
@@ -124,7 +145,9 @@ class User implements IDatabaseModel {
       dbProduct.name,
       dbProduct.email,
       dbProduct.password,
-      dbProduct.id
+      dbProduct.id,
+      dbProduct.resettoken,
+      dbProduct.resettokenexpirydate
     );
   }
 }

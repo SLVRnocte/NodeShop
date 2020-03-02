@@ -64,6 +64,9 @@ app.use((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
 }));
 app.use(csurf_1.default());
 app.use(connect_flash_1.default());
+// Set a new csrfToken for every single request.
+// The csrfToken only gets checked on every POST request through the views
+// such as on navigation.ejs (logout button), add-to-cart.ejs and so on.
 app.use((req, res, next) => {
     (res.locals.isLoggedIn = req.session.isLoggedIn),
         (res.locals.csrfToken = req.csrfToken()),
