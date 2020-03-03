@@ -97,9 +97,10 @@ const postDeleteProduct = (req, res, next) => {
     const userID = req.session.user.id;
     product_1.Product.findByID(productID)
         .then((product) => __awaiter(void 0, void 0, void 0, function* () {
-        if (product !== undefined && product.createdByUser === userID) {
-            yield product.delete();
+        if (product === undefined || product.createdByUser !== userID) {
+            return res.redirect('/admin/products');
         }
+        yield product.delete();
     }))
         .then(() => {
         res.redirect('/admin/products');

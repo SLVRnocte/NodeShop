@@ -101,9 +101,11 @@ const postDeleteProduct = (req: Request, res: Response, next: NextFunction) => {
 
   Product.findByID(productID)
     .then(async product => {
-      if (product !== undefined && product.createdByUser === userID) {
-        await product.delete();
+      if (product === undefined || product.createdByUser !== userID) {
+        return res.redirect('/admin/products');
       }
+
+      await product.delete();
     })
     .then(() => {
       res.redirect('/admin/products');

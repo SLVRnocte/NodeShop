@@ -95,9 +95,12 @@ let User = User_1 = class User {
                 .catch(err => console.log(err));
         });
     }
-    static findByColumn(column, value) {
+    static findByColumn(column, value, caseInsensitive) {
+        const query = caseInsensitive
+            ? `SELECT * FROM ${User_1.tableName} WHERE LOWER(${column})=$1`
+            : `SELECT * FROM ${User_1.tableName} WHERE ${column}=$1`;
         return new Promise(resolve => {
-            database_1.DatabaseController.query(`SELECT * FROM ${User_1.tableName} WHERE ${column}=$1`, [value])
+            database_1.DatabaseController.query(query, [value])
                 .then(result => {
                 resolve(this.createInstanceFromDB(result.rows[0]));
             })
@@ -105,9 +108,9 @@ let User = User_1 = class User {
         });
     }
     // Convenience
-    static findByEmail(email) {
-        return this.findByColumn('email', email);
-    }
+    // static findByEmail(email: string): Promise<User | undefined> {
+    //   return this.findByColumn('email', email.toLowerCase(), true);
+    // }
     static createInstanceFromDB(dbProduct) {
         if (dbProduct === undefined) {
             return undefined;

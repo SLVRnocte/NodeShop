@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
 import crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
 
 import { User } from '../models/user';
-import { DatabaseController as db } from '../controllers/database';
 import { mailer } from '../controllers/mailer';
 
 const setUser = async (session: Express.Session, user: User): Promise<void> => {
@@ -27,7 +27,11 @@ const getLogin = (req: Request, res: Response, next: NextFunction) => {
     pageTitle: 'Login',
     path: 'login',
     errorMsg: req.flash('error').toString(),
-    successMsg: req.flash('success').toString()
+    successMsg: req.flash('success').toString(),
+    oldInput: {
+      email: ''
+    },
+    validationErrors: []
   });
 };
 
@@ -35,25 +39,43 @@ const postLogin = (req: Request, res: Response, next: NextFunction) => {
   const email = req.body.email;
   const password = req.body.password;
 
-  db.query(`SELECT * FROM users WHERE email=$1`, [email]).then(r => {
-    const dbUser = r.rows[0];
-    if (dbUser === undefined) {
-      req.flash('error', 'Invalid E-Mail.');
-      return res.redirect('/login');
-    }
+  // All validation is being handled in routes/auth
+  const validationErrors = validationResult(req);
+  if (!validationErrors.isEmpty()) {
+    return res.status(422).render('auth/login', {
+      pageTitle: 'Login',
+      path: 'login',
+      errorMsg: validationErrors.array()[0].msg,
+      successMsg: req.flash('success').toString(),
+      oldInput: {
+        email: email
+      },
+      validationErrors: validationErrors.array()
+    });
+  }
 
+  // Check password
+  User.findByColumn('email', email).then(user => {
     bcrypt
-      .compare(password, dbUser.password)
+      .compare(password, user!.hashedPassword)
       .then(async match => {
         if (match) {
-          const user = User.createInstanceFromDB(dbUser);
           await setUser(req.session!, user!);
 
           return res.redirect('/');
         } else {
           // failed, back to login
-          req.flash('error', 'Invalid password.');
-          return res.redirect('/login');
+          req.flash('error', 'Wrong e-mail or password.');
+          return res.status(422).render('auth/login', {
+            pageTitle: 'Login',
+            path: 'login',
+            errorMsg: req.flash('error').toString(),
+            successMsg: req.flash('success').toString(),
+            oldInput: {
+              email: email
+            },
+            validationErrors: []
+          });
         }
       })
       .catch(err => {
@@ -85,7 +107,13 @@ const getSignup = (req: Request, res: Response, next: NextFunction) => {
   res.render('auth/signup', {
     pageTitle: 'Signup',
     path: 'signup',
-    errorMsg: req.flash('error').toString()
+    errorMsgs: [],
+    oldInput: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: ''
+    }
   });
 };
 
@@ -93,48 +121,45 @@ const postSignup = (req: Request, res: Response, next: NextFunction) => {
   const name = req.body.name;
   const email = req.body.email;
   const password = req.body.password;
-  const confirmPassword = req.body.confirmPassword;
 
-  if (password !== confirmPassword) {
-    req.flash('error', 'Passwords do not match.');
-    return res.redirect('/signup');
-  }
-  if (name.toLowerCase() === 'guest') {
-    req.flash('error', 'Invalid name.');
-    return res.redirect('/signup');
-  }
-
-  db.query(`SELECT EXISTS(select from users where email=$1)`, [email]).then(
-    result => {
-      if (result.rows[0].exists) {
-        req.flash('error', 'A user with that E-Mail already exists.');
-        return res.redirect('/signup');
+  // All validation is being handled in routes/auth
+  const validationErrors = validationResult(req);
+  if (!validationErrors.isEmpty()) {
+    return res.status(422).render('auth/signup', {
+      pageTitle: 'Signup',
+      path: 'signup',
+      errorMsgs: validationErrors.array(),
+      oldInput: {
+        name: name,
+        email: email,
+        password: password,
+        confirmPassword: req.body.confirmPassword
       }
+    });
+  }
 
-      bcrypt
-        .hash(password, 12)
-        .then(hashedPw => {
-          const user = new User(name, email, hashedPw);
-          return user.save();
-        })
-        .then(() => {
-          req.flash(
-            'success',
-            'Success, your account has been created. You can login now.'
-          );
-          res.redirect('/login');
-          return mailer.send({
-            to: email,
-            from: 'shop@NodeShop.dev',
-            subject: 'Signup succeeded!',
-            html: `<h1>Thank you for signing up in my NodeShop project, ${name}!</h1>
+  bcrypt
+    .hash(password, 12)
+    .then(hashedPw => {
+      const user = new User(name, email, hashedPw);
+      return user.save();
+    })
+    .then(() => {
+      req.flash(
+        'success',
+        'Success, your account has been created. You can login now.'
+      );
+      res.redirect('/login');
+      return mailer.send({
+        to: email,
+        from: 'shop@NodeShop.dev',
+        subject: 'Signup succeeded!',
+        html: `<h1>Thank you for signing up in my NodeShop project, ${name}!</h1>
             <p>You can start using the shop right away!</p>
             <p>In case you have any questions you can reach me on GitHub: <a href="https://github.com/SLVRnocte/">https://github.com/SLVRnocte/</a></p>`
-          });
-        })
-        .catch(err => console.log(err));
-    }
-  );
+      });
+    })
+    .catch(err => console.log(err));
 };
 
 const getResetPassword = (req: Request, res: Response, next: NextFunction) => {
@@ -146,7 +171,7 @@ const getResetPassword = (req: Request, res: Response, next: NextFunction) => {
 };
 
 const postResetPassword = (req: Request, res: Response, next: NextFunction) => {
-  User.findByEmail(req.body.email).then(user => {
+  User.findByColumn('email', req.body.email).then(user => {
     if (user === undefined) {
       req.flash('error', 'No account with that E-Mail found.');
       return res.redirect('/reset-password');

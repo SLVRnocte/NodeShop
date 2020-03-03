@@ -121,9 +121,17 @@ class User implements IDatabaseModel {
     });
   }
 
-  static findByColumn(column: string, value: any): Promise<User | undefined> {
+  static findByColumn(
+    column: string,
+    value: any,
+    caseInsensitive?: boolean
+  ): Promise<User | undefined> {
+    const query = caseInsensitive
+      ? `SELECT * FROM ${User.tableName} WHERE LOWER(${column})=$1`
+      : `SELECT * FROM ${User.tableName} WHERE ${column}=$1`;
+
     return new Promise<any>(resolve => {
-      db.query(`SELECT * FROM ${User.tableName} WHERE ${column}=$1`, [value])
+      db.query(query, [value])
         .then(result => {
           resolve(this.createInstanceFromDB(result.rows[0]));
         })
@@ -132,9 +140,9 @@ class User implements IDatabaseModel {
   }
 
   // Convenience
-  static findByEmail(email: string): Promise<User | undefined> {
-    return this.findByColumn('email', email);
-  }
+  // static findByEmail(email: string): Promise<User | undefined> {
+  //   return this.findByColumn('email', email.toLowerCase(), true);
+  // }
 
   static createInstanceFromDB(dbProduct: any): User | undefined {
     if (dbProduct === undefined) {
