@@ -108,3 +108,9 @@ typings/
 
 # Non relevant/development project files
 exclude/
+
+# User images
+# images/
+
+# User data
+data/

@@ -122,8 +122,13 @@ User.tableName = 'Users';
 User.createGuest = () => {
     return new Promise(resolve => {
         const user = new User_1('Guest', uuid_1.v4(), uuid_1.v4());
-        user.save().then(() => {
+        user
+            .save()
+            .then(() => {
             resolve(user);
+        })
+            .catch(err => {
+            throw new Error(err);
         });
     });
 };

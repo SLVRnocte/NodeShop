@@ -54,9 +54,14 @@ class User implements IDatabaseModel {
   static createGuest = (): Promise<User> => {
     return new Promise<User>(resolve => {
       const user = new User('Guest', uuid(), uuid());
-      user.save().then(() => {
-        resolve(user);
-      });
+      user
+        .save()
+        .then(() => {
+          resolve(user);
+        })
+        .catch(err => {
+          throw new Error(err);
+        });
     });
   };
 

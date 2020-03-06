@@ -1,4 +1,9 @@
+import path from 'path';
+
 import { Request, Response, NextFunction } from 'express';
+import { validationResult } from 'express-validator';
+
+import { deleteFile } from '../util/fileHelper';
 
 import { Product } from '../models/product';
 
@@ -11,13 +16,32 @@ const getAddProduct = (req: Request, res: Response, next: NextFunction) => {
 
 const postAddProduct = (req: Request, res: Response, next: NextFunction) => {
   const title: string = req.body.title;
-  const imageURL: string = req.body.imageURL;
-  const description: string = req.body.description;
+  const image: Express.Multer.File = req.file;
   const price: number = req.body.price;
+  const description: string = req.body.description;
   const createdBy = req.session!.user.id;
+
+  const validationErrors = validationResult(req);
+  if (!validationErrors.isEmpty() || image === undefined) {
+    return res.status(422).render('admin/edit-product', {
+      pageTitle: 'Add Product',
+      path: 'admin/add-product',
+      errorMsg: image
+        ? validationErrors.array()[0].msg
+        : 'Attached file is not an image',
+      successMsg: req.flash('success').toString(),
+      product: {
+        title: title,
+        //image: image ? image : undefined,
+        price: price,
+        description: description
+      }
+    });
+  }
+
   const product = new Product(
     title,
-    imageURL,
+    image.filename,
     description,
     price,
     undefined,
@@ -81,9 +105,13 @@ const postEditProduct = (req: Request, res: Response, next: NextFunction) => {
         return res.redirect('/admin/products');
       }
 
+      const image = req.file;
+      if (image) {
+        deleteFile(product.imagePath);
+        product.imageURL = image.filename;
+      }
       product.title = req.body.title;
       product.price = req.body.price;
-      product.imageURL = req.body.imageURL;
       product.description = req.body.description;
       product
         .save()
@@ -105,6 +133,7 @@ const postDeleteProduct = (req: Request, res: Response, next: NextFunction) => {
         return res.redirect('/admin/products');
       }
 
+      deleteFile(product.imagePath);
       await product.delete();
     })
     .then(() => {

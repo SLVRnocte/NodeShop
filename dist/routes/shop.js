@@ -12,12 +12,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const shopController = __importStar(require("../controllers/shop"));
+const is_auth_1 = __importDefault(require("../middleware/is-auth"));
 const router = express_1.default.Router();
 router.get('/', shopController.getIndex);
 router.get('/products', shopController.getProducts);
 router.get('/products/:productID', shopController.getProduct);
 router.get('/orders', shopController.getOrders);
 router.post('/create-order', shopController.postOrder);
+router.get('/orders/:orderID', is_auth_1.default, shopController.getInvoice);
 router.get('/cart', shopController.getCart);
 router.post('/cart', shopController.postCart);
 router.post('/cart-modify-item-quantity', shopController.postCartModifiyItemQuantity);

@@ -109,7 +109,6 @@ class Order {
     }
     deleteProduct(productID) {
         return __awaiter(this, void 0, void 0, function* () {
-            //if(productID !== Number)
             const cartProductIndex = this.orderProducts.findIndex(cartProduct => cartProduct.product.id === productID);
             let cartProduct = this.orderProducts[cartProductIndex];
             console.log(cartProduct);
@@ -130,6 +129,18 @@ class Order {
                 }
             }
             resolve(totalPrice);
+        });
+    }
+    static findByColumn(column, value, caseInsensitive) {
+        const query = caseInsensitive
+            ? `SELECT * FROM ${Order.tableName} WHERE LOWER(${column})=$1`
+            : `SELECT * FROM ${Order.tableName} WHERE ${column}=$1`;
+        return new Promise(resolve => {
+            database_1.DatabaseController.query(query, [value])
+                .then(result => {
+                resolve(this.createInstanceFromDB(result.rows[0]));
+            })
+                .catch(err => console.log(err));
         });
     }
     static fetchAllBelongingToUser(userID) {
@@ -154,7 +165,7 @@ class Order {
             if (dbProduct === undefined) {
                 return undefined;
             }
-            const order = new Order(dbProduct.id);
+            const order = new Order(dbProduct.id, dbProduct.belongstouser);
             yield order.load();
             return order;
         });

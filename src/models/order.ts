@@ -122,8 +122,6 @@ class Order implements IDatabaseModel {
   }
 
   async deleteProduct(productID: number): Promise<void> {
-    //if(productID !== Number)
-
     const cartProductIndex = this.orderProducts.findIndex(
       cartProduct => cartProduct.product.id === productID
     );
@@ -152,6 +150,24 @@ class Order implements IDatabaseModel {
     });
   }
 
+  static findByColumn(
+    column: string,
+    value: any,
+    caseInsensitive?: boolean
+  ): Promise<Order | undefined> {
+    const query = caseInsensitive
+      ? `SELECT * FROM ${Order.tableName} WHERE LOWER(${column})=$1`
+      : `SELECT * FROM ${Order.tableName} WHERE ${column}=$1`;
+
+    return new Promise<any>(resolve => {
+      db.query(query, [value])
+        .then(result => {
+          resolve(this.createInstanceFromDB(result.rows[0]));
+        })
+        .catch(err => console.log(err));
+    });
+  }
+
   static fetchAllBelongingToUser(userID: number): Promise<Order[]> {
     return new Promise<Order[]>(resolve => {
       db.query(`SELECT * FROM ${Order.tableName} WHERE belongsToUser=$1`, [
@@ -177,7 +193,7 @@ class Order implements IDatabaseModel {
       return undefined;
     }
 
-    const order = new Order(dbProduct.id);
+    const order = new Order(dbProduct.id, dbProduct.belongstouser);
 
     await order.load();
     return order;

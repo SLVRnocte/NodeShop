@@ -8,7 +8,20 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const fs_1 = __importDefault(require("fs"));
+const pdfkit_1 = __importDefault(require("pdfkit"));
+const fileStorageController = __importStar(require("../controllers/fileStorage"));
 const product_1 = require("../models/product");
 const cart_1 = require("../models/cart");
 const order_1 = require("../models/order");
@@ -149,6 +162,69 @@ const postOrder = (req, res, next) => {
     });
 };
 exports.postOrder = postOrder;
+const getInvoice = (req, res, next) => {
+    const orderID = parseInt(req.params.orderID);
+    if (isNaN(orderID) || orderID > Number.MAX_SAFE_INTEGER || orderID < 0) {
+        return res.redirect('/orders');
+    }
+    order_1.Order.findByColumn('id', orderID)
+        .then((order) => __awaiter(void 0, void 0, void 0, function* () {
+        const userID = req.session.user.id;
+        if ((order === null || order === void 0 ? void 0 : order.belongsToUser) !== userID) {
+            return res.redirect('/orders');
+        }
+        const invoiceName = `invoice-${orderID}.pdf`;
+        const invoicePath = fileStorageController.invoicePath + invoiceName;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="' + invoiceName + '"');
+        const pdf = new pdfkit_1.default();
+        pdf.pipe(fs_1.default.createWriteStream(invoicePath));
+        pdf.pipe(res);
+        pdf
+            .fontSize(8)
+            .text('This document is strictly for demonstration purposes only and does not represent an actual invoice.', {
+            align: 'center'
+        })
+            .moveDown(5);
+        pdf
+            .fontSize(15)
+            .text(`Order (# ${order.id})`, { align: 'right' })
+            .moveDown(1);
+        pdf
+            .fontSize(36)
+            .text('Invoice', {
+            underline: true,
+            align: 'center'
+        })
+            .moveDown(2);
+        order.orderProducts.forEach(orderProduct => {
+            pdf
+                .fontSize(14)
+                .text(`(${orderProduct.quantity}x) ${orderProduct.product.title} --- Total: $${(orderProduct.quantity * orderProduct.product.price).toFixed(2)}`);
+        });
+        pdf.moveDown(3);
+        let totalPrice = 0;
+        yield order.getTotalPrice().then(t => (totalPrice = t));
+        pdf
+            .fontSize(20)
+            .text('Grand Total: $' + totalPrice.toFixed(2))
+            .moveDown(3);
+        pdf
+            .fontSize(8)
+            .text('This document is strictly for demonstration purposes only and does not represent an actual invoice.', {
+            align: 'center'
+        })
+            .moveDown(5);
+        pdf.end();
+        // const fileStream = fs.createReadStream(invoicePath);
+        // fileStream.pipe(res);
+    }))
+        .catch(err => {
+        console.log(err);
+        return res.redirect('/orders');
+    });
+};
+exports.getInvoice = getInvoice;
 const getCheckout = (req, res, next) => {
     res.render('shop/checkout', {
         pageTitle: 'Checkout',

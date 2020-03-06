@@ -1,11 +1,15 @@
+import path from 'path';
+
+import { QueryResult } from 'pg';
+
 import { staticImplements } from '../util/staticImplements';
 import {
   IDatabaseModel,
   IDatabaseModelStatic
 } from '../interfaces/IDatabaseModel';
 
+import * as fileStorageController from '../controllers/fileStorage';
 import { DatabaseController as db } from '../controllers/database';
-import { QueryResult } from 'pg';
 
 import { User } from './user';
 
@@ -13,7 +17,9 @@ import { User } from './user';
 class Product implements IDatabaseModel {
   id: number;
   title: string;
+  private imageDBURL: string;
   imageURL: string;
+  imagePath: string;
   description: string;
   price: number;
   createdByUser: number;
@@ -31,7 +37,12 @@ class Product implements IDatabaseModel {
     this.id = id !== undefined ? id : NaN;
     this.createdByUser = createdByUser !== undefined ? createdByUser : NaN;
     this.title = title;
-    this.imageURL = imageURL;
+    this.imageDBURL = imageURL;
+    this.imageURL = path.join('/', 'images', this.imageDBURL);
+    this.imagePath = path.join(
+      fileStorageController.imagePath,
+      this.imageDBURL
+    );
     this.description = description;
     this.price = price;
   }
@@ -81,7 +92,7 @@ class Product implements IDatabaseModel {
             this.title,
             this.price,
             this.description,
-            this.imageURL,
+            this.imageDBURL,
             now,
             this.createdByUser
           ]
@@ -93,7 +104,14 @@ class Product implements IDatabaseModel {
     } else {
       return db.query(
         `UPDATE ${Product.tableName} SET title=$1, price=$2, description=$3, imageURL=$4, updatedAt=$5 WHERE id=$6`,
-        [this.title, this.price, this.description, this.imageURL, now, this.id]
+        [
+          this.title,
+          this.price,
+          this.description,
+          this.imageDBURL,
+          now,
+          this.id
+        ]
       );
     }
   }

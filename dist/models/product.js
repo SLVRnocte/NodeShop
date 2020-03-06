@@ -14,9 +14,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 var Product_1;
 Object.defineProperty(exports, "__esModule", { value: true });
+const path_1 = __importDefault(require("path"));
 const staticImplements_1 = require("../util/staticImplements");
+const fileStorageController = __importStar(require("../controllers/fileStorage"));
 const database_1 = require("../controllers/database");
 const user_1 = require("./user");
 let Product = Product_1 = class Product {
@@ -24,7 +36,9 @@ let Product = Product_1 = class Product {
         this.id = id !== undefined ? id : NaN;
         this.createdByUser = createdByUser !== undefined ? createdByUser : NaN;
         this.title = title;
-        this.imageURL = imageURL;
+        this.imageDBURL = imageURL;
+        this.imageURL = path_1.default.join('/', 'images', this.imageDBURL);
+        this.imagePath = path_1.default.join(fileStorageController.imagePath, this.imageDBURL);
         this.description = description;
         this.price = price;
     }
@@ -63,7 +77,7 @@ let Product = Product_1 = class Product {
                         this.title,
                         this.price,
                         this.description,
-                        this.imageURL,
+                        this.imageDBURL,
                         now,
                         this.createdByUser
                     ]).then(result => {
@@ -73,7 +87,14 @@ let Product = Product_1 = class Product {
                 });
             }
             else {
-                return database_1.DatabaseController.query(`UPDATE ${Product_1.tableName} SET title=$1, price=$2, description=$3, imageURL=$4, updatedAt=$5 WHERE id=$6`, [this.title, this.price, this.description, this.imageURL, now, this.id]);
+                return database_1.DatabaseController.query(`UPDATE ${Product_1.tableName} SET title=$1, price=$2, description=$3, imageURL=$4, updatedAt=$5 WHERE id=$6`, [
+                    this.title,
+                    this.price,
+                    this.description,
+                    this.imageDBURL,
+                    now,
+                    this.id
+                ]);
             }
         });
     }

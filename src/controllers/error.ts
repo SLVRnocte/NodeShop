@@ -8,4 +8,11 @@ const get404 = (req: Request, res: Response, next: NextFunction) => {
   });
 };
 
+// const get500 = (req: Request, res: Response, next: NextFunction) => {
+//   res.status(500).render('500', {
+//     pageTitle: 'Error!',
+//     path: '/500'
+//   });
+// };
+
 export { get404 };

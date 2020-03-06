@@ -41,15 +41,17 @@ class OrderProduct {
         return __awaiter(this, void 0, void 0, function* () {
             // Does the orderProduct exist in the app
             let result = !isNaN(this.id);
+            console.log('ID: ' + this.product.id);
             // Even if so, does it for some reason not exist in the DB?
             // Maybe someone manually inserted a faulty ID into the URL
             if (result) {
                 yield database_1.DatabaseController
-                    .query(`SELECT EXISTS(select 1 from ${OrderProduct.tableName} where id=$1)`, [this.product.id])
+                    .query(`SELECT EXISTS(select 1 from ${OrderProduct.tableName} where productid=$1)`, [this.product.id])
                     .then(res => {
                     result = res.rows[0].exists;
                 });
             }
+            console.log('EXISTS?: ' + result);
             const now = new Date();
             if (!result) {
                 return new Promise(res => {

@@ -1,9 +1,13 @@
+import fs from 'fs';
 import { Request, Response, NextFunction } from 'express';
+
+import pdfDocument from 'pdfkit';
+
+import * as fileStorageController from '../controllers/fileStorage';
 
 import { Product } from '../models/product';
 import { Cart } from '../models/cart';
 import { Order } from '../models/order';
-import { User } from '../models/user';
 
 const getIndex = (req: Request, res: Response, next: NextFunction) => {
   Product.fetchAll()
@@ -149,12 +153,101 @@ const postOrder = (req: Request, res: Response, next: NextFunction) => {
           await newOrder.addProduct(product.product.id);
         }
       }
+
       return newOrder.save().then(() => {
         return cart.delete();
       });
     })
     .then(() => {
       res.redirect('/orders');
+    });
+};
+
+const getInvoice = (req: Request, res: Response, next: NextFunction) => {
+  const orderID = parseInt(req.params.orderID);
+  if (isNaN(orderID) || orderID > Number.MAX_SAFE_INTEGER || orderID < 0) {
+    return res.redirect('/orders');
+  }
+
+  Order.findByColumn('id', orderID)
+    .then(async order => {
+      const userID = req.session!.user.id;
+      if (order?.belongsToUser !== userID) {
+        return res.redirect('/orders');
+      }
+
+      const invoiceName = `invoice-${orderID}.pdf`;
+      const invoicePath = fileStorageController.invoicePath + invoiceName;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        'inline; filename="' + invoiceName + '"'
+      );
+      const pdf = new pdfDocument();
+      pdf.pipe(fs.createWriteStream(invoicePath));
+      pdf.pipe(res);
+
+      pdf
+        .fontSize(8)
+        .text(
+          'This document is strictly for demonstration purposes only and does not represent an actual invoice.',
+          {
+            align: 'center'
+          }
+        )
+        .moveDown(5);
+
+      pdf
+        .fontSize(15)
+        .text(`Order (# ${order!.id})`, { align: 'right' })
+        .moveDown(1);
+
+      pdf
+        .fontSize(36)
+        .text('Invoice', {
+          underline: true,
+          align: 'center'
+        })
+        .moveDown(2);
+
+      order!.orderProducts.forEach(orderProduct => {
+        pdf
+          .fontSize(14)
+          .text(
+            `(${orderProduct.quantity}x) ${
+              orderProduct.product.title
+            } --- Total: $${(
+              orderProduct.quantity * orderProduct.product.price
+            ).toFixed(2)}`
+          );
+      });
+      pdf.moveDown(3);
+      let totalPrice = 0;
+      await order!.getTotalPrice().then(t => (totalPrice = t));
+      pdf
+        .fontSize(20)
+        .text('Grand Total: $' + totalPrice.toFixed(2))
+        .moveDown(3);
+
+      pdf
+        .fontSize(8)
+        .text(
+          'This document is strictly for demonstration purposes only and does not represent an actual invoice.',
+          {
+            align: 'center'
+          }
+        )
+        .moveDown(5);
+
+      pdf.end();
+
+      // const fileStream = fs.createReadStream(invoicePath);
+      // fileStream.pipe(res);
+    })
+    .catch(err => {
+      console.log(err);
+      return res.redirect('/orders');
     });
 };
 
@@ -175,5 +268,6 @@ export {
   postCartModifiyItemQuantity,
   getOrders,
   postOrder,
+  getInvoice,
   getCheckout
 };

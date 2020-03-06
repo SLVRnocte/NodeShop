@@ -9,6 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const express_validator_1 = require("express-validator");
+const fileHelper_1 = require("../util/fileHelper");
 const product_1 = require("../models/product");
 const getAddProduct = (req, res, next) => {
     res.render('admin/edit-product', {
@@ -19,11 +21,28 @@ const getAddProduct = (req, res, next) => {
 exports.getAddProduct = getAddProduct;
 const postAddProduct = (req, res, next) => {
     const title = req.body.title;
-    const imageURL = req.body.imageURL;
-    const description = req.body.description;
+    const image = req.file;
     const price = req.body.price;
+    const description = req.body.description;
     const createdBy = req.session.user.id;
-    const product = new product_1.Product(title, imageURL, description, price, undefined, createdBy);
+    const validationErrors = express_validator_1.validationResult(req);
+    if (!validationErrors.isEmpty() || image === undefined) {
+        return res.status(422).render('admin/edit-product', {
+            pageTitle: 'Add Product',
+            path: 'admin/add-product',
+            errorMsg: image
+                ? validationErrors.array()[0].msg
+                : 'Attached file is not an image',
+            successMsg: req.flash('success').toString(),
+            product: {
+                title: title,
+                //image: image ? image : undefined,
+                price: price,
+                description: description
+            }
+        });
+    }
+    const product = new product_1.Product(title, image.filename, description, price, undefined, createdBy);
     product
         .save()
         .then(() => res.redirect('/'))
@@ -78,9 +97,13 @@ const postEditProduct = (req, res, next) => {
         if (product === undefined || product.createdByUser !== userID) {
             return res.redirect('/admin/products');
         }
+        const image = req.file;
+        if (image) {
+            fileHelper_1.deleteFile(product.imagePath);
+            product.imageURL = image.filename;
+        }
         product.title = req.body.title;
         product.price = req.body.price;
-        product.imageURL = req.body.imageURL;
         product.description = req.body.description;
         product
             .save()
@@ -100,6 +123,7 @@ const postDeleteProduct = (req, res, next) => {
         if (product === undefined || product.createdByUser !== userID) {
             return res.redirect('/admin/products');
         }
+        fileHelper_1.deleteFile(product.imagePath);
         yield product.delete();
     }))
         .then(() => {

@@ -1,18 +1,22 @@
 import path from 'path';
+import fs from 'fs';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
+import multer, { FileFilterCallback } from 'multer';
 import express from 'express';
 import session from 'express-session';
 import { Request, Response, NextFunction } from 'express';
 const pgSession = require('connect-pg-simple')(session);
 import csurf from 'csurf';
 import flash from 'connect-flash';
+import { v4 as uuid } from 'uuid';
 
 import adminRoutes from './routes/admin';
 import shopRoutes from './routes/shop';
 import authRoutes from './routes/auth';
 
 import * as errorController from './controllers/error';
+import * as fileStorageController from './controllers/fileStorage';
 import { DatabaseController as db } from './controllers/database';
 import { init as mailerInit } from './controllers/mailer';
 import { User } from './models/user';
@@ -28,8 +32,43 @@ const app = express();
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, fileStorageController.imagePath);
+  },
+  filename: (req, file, cb) => {
+    //const split = file.originalname.split('.');
+    //cb(null, `${uuid()}.${split[split.length - 1]}`);
+    cb(
+      null,
+      `${uuid()}${file.originalname.substr(file.originalname.lastIndexOf('.'))}`
+    );
+  }
+});
+
+const fileFilter = (
+  req: Express.Request,
+  file: Express.Multer.File,
+  cb: FileFilterCallback
+) => {
+  if (
+    file.mimetype === 'image/png' ||
+    file.mimetype === 'image/jpg' ||
+    file.mimetype === 'image/jpeg'
+  ) {
+    cb(null, true);
+  } else {
+    cb(null, false);
+  }
+};
+
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(
+  multer({ storage: fileStorage, fileFilter: fileFilter }).single('image')
+);
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/images', express.static(path.join(__dirname, 'data', 'images')));
+//app.use(express.static(path.join(__dirname, 'data', 'images')));
 
 app.use(
   session({
@@ -43,7 +82,7 @@ app.use(
   })
 );
 
-// Every browser will be a guest by default, the guest gets deleted
+// Every browser will be a guest by default, the guest gets deleted eventually (TODO)
 app.use(async (req: Request, res: Response, next: NextFunction) => {
   if (req.session!.user === undefined) {
     await User.createGuest().then(async guest => {
@@ -70,8 +109,11 @@ app.use(adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
 
+// app.get('/500', errorController.get500);
+
 app.use('/', errorController.get404);
 
+fileStorageController.init();
 mailerInit();
 db.init()
   .then(() => {
