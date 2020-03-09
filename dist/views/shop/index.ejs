@@ -14,18 +14,42 @@
                     <h1 class="product__title"><%= product.title %></h1>
                 </header>
                 <div class="card__image">
-                    <img src="<%= product.imageURL %>" alt="<%= product.title %>">
+                    <a href="/products/<%= product.id %>">
+                        <img src="<%= product.imageURL %>" alt="<%= product.title %>">
+                    </a>
                 </div>
                 <div class="card__content">
                     <h2 class="product__price">$<%= product.price %></h2>
                     <p class="product__description"><%= product.description %></p>
                 </div>
                 <div class="card__actions">
+                    <a href="/products/<%= product.id %>" class="btn">Details</a>
                     <%- include('../includes/add-to-cart.ejs', {product: product}) %>
                 </div>
             </article>
             <% } %>
         </div>
+        <section class="pagination">
+            <% if (currentPage !== 1) { %>
+            <a href="?page=1">1</a>
+            <% } %>
+            <% if (!isNaN(previousPage) && previousPage !== 1) {
+                if(previousPage - 1 > 1) { %>
+            ...
+            <% } %>
+            <a href="?page=<%= previousPage %>"><%= previousPage %></a>
+            <% } %>
+            <a href="?page=<%= currentPage %>" class="active"><%= currentPage %></a>
+            <% if (!isNaN(nextPage) && nextPage !== lastPage) { %>
+            <a href="?page=<%= nextPage %>"><%= nextPage %></a>
+            <%  if(nextPage + 1 < lastPage) { %>
+            ...
+            <% }
+        } %>
+            <% if (lastPage !== currentPage) { %>
+            <a href="?page=<%= lastPage %>"><%= lastPage %></a>
+            <% } %>
+        </section>
         <% } else { %>
         <h1>No Products Found!</h1>
         <% } %>

@@ -25,11 +25,28 @@ const fileStorageController = __importStar(require("../controllers/fileStorage")
 const product_1 = require("../models/product");
 const cart_1 = require("../models/cart");
 const order_1 = require("../models/order");
+const ITEMS_PER_PAGE = 2;
 const getIndex = (req, res, next) => {
     product_1.Product.fetchAll()
         .then(result => {
+        const totalAmountOfProducts = result.length;
+        const lastPage = Math.ceil(totalAmountOfProducts / ITEMS_PER_PAGE);
+        // Get the requested page. If it's <= 0, set to 1
+        let requestedPage = isNaN(req.query.page) || parseInt(req.query.page) <= 0
+            ? 1
+            : parseInt(req.query.page);
+        // If the requested page is > lastPage, set to lastPage
+        requestedPage = requestedPage > lastPage ? lastPage : requestedPage;
+        const startIndex = (requestedPage - 1) * ITEMS_PER_PAGE;
+        const products = result.slice(startIndex, startIndex + ITEMS_PER_PAGE);
         res.render('shop/index', {
-            products: result,
+            products: products,
+            currentPage: requestedPage,
+            previousPage: requestedPage > 1 ? requestedPage - 1 : NaN,
+            nextPage: ITEMS_PER_PAGE * requestedPage < totalAmountOfProducts
+                ? requestedPage + 1
+                : NaN,
+            lastPage: lastPage,
             pageTitle: 'Shop',
             path: 'shop'
         });
