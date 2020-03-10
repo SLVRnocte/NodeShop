@@ -65,10 +65,10 @@ router.post(
   adminController.postEditProduct
 );
 
-router.post(
-  `${adminURLPrefix}/delete-product`,
+router.delete(
+  `${adminURLPrefix}/product/:productID`,
   isAuth,
-  adminController.postDeleteProduct
+  adminController.deleteProduct
 );
 
 export default router;

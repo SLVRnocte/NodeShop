@@ -123,8 +123,8 @@ const postEditProduct = (req: Request, res: Response, next: NextFunction) => {
     .catch(err => console.log(err));
 };
 
-const postDeleteProduct = (req: Request, res: Response, next: NextFunction) => {
-  const productID = req.body.productID;
+const deleteProduct = (req: Request, res: Response, next: NextFunction) => {
+  const productID = parseInt(req.params.productID);
   const userID = req.session!.user.id;
 
   Product.findByID(productID)
@@ -137,9 +137,13 @@ const postDeleteProduct = (req: Request, res: Response, next: NextFunction) => {
       await product.delete();
     })
     .then(() => {
-      res.redirect('/admin/products');
+      // res.redirect('/admin/products');
+      res.status(200).json({ message: 'Success!' });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({ message: 'Deleting product failed.' });
+    });
 };
 
 export {
@@ -147,6 +151,6 @@ export {
   postAddProduct,
   getEditProduct,
   postEditProduct,
-  postDeleteProduct,
+  deleteProduct,
   getProducts
 };

@@ -115,8 +115,8 @@ const postEditProduct = (req, res, next) => {
         .catch(err => console.log(err));
 };
 exports.postEditProduct = postEditProduct;
-const postDeleteProduct = (req, res, next) => {
-    const productID = req.body.productID;
+const deleteProduct = (req, res, next) => {
+    const productID = parseInt(req.params.productID);
     const userID = req.session.user.id;
     product_1.Product.findByID(productID)
         .then((product) => __awaiter(void 0, void 0, void 0, function* () {
@@ -127,9 +127,13 @@ const postDeleteProduct = (req, res, next) => {
         yield product.delete();
     }))
         .then(() => {
-        res.redirect('/admin/products');
+        // res.redirect('/admin/products');
+        res.status(200).json({ message: 'Success!' });
     })
-        .catch(err => console.log(err));
+        .catch(err => {
+        console.log(err);
+        res.status(500).json({ message: 'Deleting product failed.' });
+    });
 };
-exports.postDeleteProduct = postDeleteProduct;
+exports.deleteProduct = deleteProduct;
 //# sourceMappingURL=admin.js.map

@@ -50,6 +50,6 @@ router.post(`${adminURLPrefix}/edit-product`, [
     express_validator_1.body('price').isFloat(),
     express_validator_1.body('description').isLength({ min: 1 })
 ], is_auth_1.default, adminController.postEditProduct);
-router.post(`${adminURLPrefix}/delete-product`, is_auth_1.default, adminController.postDeleteProduct);
+router.delete(`${adminURLPrefix}/product/:productID`, is_auth_1.default, adminController.deleteProduct);
 exports.default = router;
 //# sourceMappingURL=admin.js.map

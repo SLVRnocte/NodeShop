@@ -21,39 +21,86 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
 const pdfkit_1 = __importDefault(require("pdfkit"));
+const database_1 = require("../controllers/database");
 const fileStorageController = __importStar(require("../controllers/fileStorage"));
 const product_1 = require("../models/product");
 const cart_1 = require("../models/cart");
 const order_1 = require("../models/order");
-const ITEMS_PER_PAGE = 2;
+// Get the products paged with LIMIT/OFFSET from the database in 2 queries
+// This always works even if the requested page is out of bounds
 const getIndex = (req, res, next) => {
-    product_1.Product.fetchAll()
-        .then(result => {
-        const totalAmountOfProducts = result.length;
-        const lastPage = Math.ceil(totalAmountOfProducts / ITEMS_PER_PAGE);
-        // Get the requested page. If it's <= 0, set to 1
-        let requestedPage = isNaN(req.query.page) || parseInt(req.query.page) <= 0
-            ? 1
-            : parseInt(req.query.page);
-        // If the requested page is > lastPage, set to lastPage
-        requestedPage = requestedPage > lastPage ? lastPage : requestedPage;
-        const startIndex = (requestedPage - 1) * ITEMS_PER_PAGE;
-        const products = result.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    const itemsPerPage = 2;
+    // Get the requested page. If it's <= 0, set to 1
+    let requestedPage = isNaN(req.query.page) || parseInt(req.query.page) <= 0
+        ? 1
+        : parseInt(req.query.page);
+    // Try to solve in 1 single query, if this fails we redo it with 2 queries
+    database_1.DatabaseController.query(`SELECT *, count(*) OVER() AS full_count
+    FROM   ${product_1.Product.tableName}
+    LIMIT  ${itemsPerPage}
+    OFFSET ${(requestedPage - 1) * itemsPerPage}`)
+        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        let totalAmountOfProducts = 0;
+        let lastPage = 0;
+        let products = [];
+        // Success
+        if (result.rows.length) {
+            totalAmountOfProducts = parseInt(result.rows[0].full_count);
+            lastPage = Math.ceil(totalAmountOfProducts / itemsPerPage);
+            for (const dbProduct of result.rows) {
+                products.push(product_1.Product.createInstanceFromDB(dbProduct));
+            }
+        }
+        // Requested page is out of bounds. Using 2 queries instead which will set requestedPage to lastPage and return safe results
+        else {
+            yield getPagedProductsIn2Queries(itemsPerPage).then(result => {
+                totalAmountOfProducts = result.totalAmountOfProducts;
+                requestedPage = result.requestedPage;
+                lastPage = requestedPage;
+                products = result.products;
+            });
+        }
         res.render('shop/index', {
             products: products,
             currentPage: requestedPage,
             previousPage: requestedPage > 1 ? requestedPage - 1 : NaN,
-            nextPage: ITEMS_PER_PAGE * requestedPage < totalAmountOfProducts
+            nextPage: itemsPerPage * requestedPage < totalAmountOfProducts
                 ? requestedPage + 1
                 : NaN,
             lastPage: lastPage,
             pageTitle: 'Shop',
             path: 'shop'
         });
-    })
+    }))
         .catch(err => console.log(err));
 };
 exports.getIndex = getIndex;
+const getPagedProductsIn2Queries = (itemsPerPage) => __awaiter(void 0, void 0, void 0, function* () {
+    return new Promise((resolve) => __awaiter(void 0, void 0, void 0, function* () {
+        yield database_1.DatabaseController
+            .query(`SELECT COUNT(*) FROM ${product_1.Product.tableName}`)
+            .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+            const totalAmountOfProducts = parseInt(result.rows[0].count);
+            // Requested page was out of bounds, so we set it to lastPage directly
+            const requestedPage = Math.ceil(totalAmountOfProducts / itemsPerPage);
+            yield database_1.DatabaseController
+                .query(`SELECT * FROM ${product_1.Product.tableName} LIMIT ${itemsPerPage} OFFSET ${(requestedPage - 1) *
+                itemsPerPage}`)
+                .then(result => {
+                let products = [];
+                for (const dbProduct of result.rows) {
+                    products.push(product_1.Product.createInstanceFromDB(dbProduct));
+                }
+                resolve({
+                    products: products,
+                    totalAmountOfProducts: totalAmountOfProducts,
+                    requestedPage: requestedPage
+                });
+            })
+                .catch(err => console.log(err));
+        }));
+    }));
+});
 const getProducts = (req, res, next) => {
     product_1.Product.fetchAll()
         .then(result => {
