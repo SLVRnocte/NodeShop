@@ -5,6 +5,7 @@ const deleteProduct = (btn: HTMLElement) => {
   const csrfToken = (btn.parentNode!.querySelector(
     '[name=_csrf]'
   )! as HTMLInputElement).value;
+  const productElement = btn.closest('article');
 
   fetch(`/admin/product/${productID}`, {
     method: 'DELETE',
@@ -13,7 +14,10 @@ const deleteProduct = (btn: HTMLElement) => {
     }
   })
     .then(result => {
-      console.log(result);
+      return result.json();
+    })
+    .then(data => {
+      productElement!.parentNode?.removeChild(productElement!);
     })
     .catch(err => {
       console.log(err);

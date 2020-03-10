@@ -12,8 +12,8 @@ import { Order } from '../models/order';
 
 import { performance } from 'perf_hooks';
 
-// Get the products paged with LIMIT/OFFSET from the database in 2 queries
-// This always works even if the requested page is out of bounds
+// Get the products paged with LIMIT/OFFSET from the database in 1 query
+// In case this fails due to out of bounds requestedPage, redo it in 2 queries
 const getIndex = (req: Request, res: Response, next: NextFunction) => {
   const itemsPerPage = 2;
   // Get the requested page. If it's <= 0, set to 1
