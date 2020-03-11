@@ -48,8 +48,6 @@ class OrderProduct implements IDatabaseModel {
     // Does the orderProduct exist in the app
     let result = !isNaN(this.id);
 
-    console.log('ID: ' + this.product.id);
-
     // Even if so, does it for some reason not exist in the DB?
     // Maybe someone manually inserted a faulty ID into the URL
     if (result) {
@@ -62,8 +60,6 @@ class OrderProduct implements IDatabaseModel {
           result = res.rows[0].exists;
         });
     }
-
-    console.log('EXISTS?: ' + result);
 
     const now = new Date();
     if (!result) {

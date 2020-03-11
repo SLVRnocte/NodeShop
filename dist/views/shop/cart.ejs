@@ -43,10 +43,11 @@
         <hr>
         <div class="centered">
             <h2>Grand Total: $<%= totalPrice %></h2>
-            <form action="/create-order" method="POST">
+            <!-- <form action="/create-order" method="POST">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <button type="submit" class="btn">Place Order</button>
-            </form>
+            </form> -->
+            <a href="/checkout" class="btn">Check Out</a>
         </div>
         <% } else { %>
         <h1>No Products in Cart!</h1>

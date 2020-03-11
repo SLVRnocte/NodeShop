@@ -194,6 +194,24 @@ const postCartModifiyItemQuantity = (req, res, next) => {
     });
 };
 exports.postCartModifiyItemQuantity = postCartModifiyItemQuantity;
+const getCheckout = (req, res, next) => {
+    const session = req.session;
+    const cart = new cart_1.Cart(session);
+    cart
+        .load()
+        .then(() => {
+        cart.getTotalPrice().then(totalPrice => {
+            res.render('shop/checkout', {
+                pageTitle: 'Checkout',
+                path: 'checkout',
+                cartProducts: cart.cartProducts,
+                totalPrice: totalPrice.toFixed(2)
+            });
+        });
+    })
+        .catch(err => console.log(err));
+};
+exports.getCheckout = getCheckout;
 const getOrders = (req, res, next) => {
     const userID = req.session.user.id;
     order_1.Order.fetchAllBelongingToUser(userID).then(orders => {
@@ -289,11 +307,4 @@ const getInvoice = (req, res, next) => {
     });
 };
 exports.getInvoice = getInvoice;
-const getCheckout = (req, res, next) => {
-    res.render('shop/checkout', {
-        pageTitle: 'Checkout',
-        path: 'checkout'
-    });
-};
-exports.getCheckout = getCheckout;
 //# sourceMappingURL=shop.js.map
