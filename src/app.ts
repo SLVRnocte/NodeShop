@@ -1,5 +1,5 @@
 import path from 'path';
-import fs from 'fs';
+import fs, { access } from 'fs';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import multer, { FileFilterCallback } from 'multer';
@@ -10,6 +10,9 @@ const pgSession = require('connect-pg-simple')(session);
 import csurf from 'csurf';
 import flash from 'connect-flash';
 import { v4 as uuid } from 'uuid';
+import helmet from 'helmet';
+import compression from 'compression';
+import morgan from 'morgan';
 
 import adminRoutes from './routes/admin';
 import shopRoutes from './routes/shop';
@@ -31,6 +34,14 @@ const app = express();
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+app.use(helmet());
+app.use(compression());
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, 'access.log'),
+  { flags: 'a' }
+);
+app.use(morgan('combined', { stream: accessLogStream }));
 
 const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -117,6 +128,8 @@ fileStorageController.init();
 mailerInit();
 db.init()
   .then(() => {
-    app.listen(3000, () => console.log('Node server listening!'));
+    app.listen(process.env.PORT || 3000, () =>
+      console.log('Node server listening!')
+    );
   })
   .catch(err => console.log(err));

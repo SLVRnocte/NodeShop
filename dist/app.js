@@ -20,6 +20,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const multer_1 = __importDefault(require("multer"));
@@ -29,6 +30,9 @@ const pgSession = require('connect-pg-simple')(express_session_1.default);
 const csurf_1 = __importDefault(require("csurf"));
 const connect_flash_1 = __importDefault(require("connect-flash"));
 const uuid_1 = require("uuid");
+const helmet_1 = __importDefault(require("helmet"));
+const compression_1 = __importDefault(require("compression"));
+const morgan_1 = __importDefault(require("morgan"));
 const admin_1 = __importDefault(require("./routes/admin"));
 const shop_1 = __importDefault(require("./routes/shop"));
 const auth_1 = __importDefault(require("./routes/auth"));
@@ -45,6 +49,10 @@ dotenv_1.default.config({
 const app = express_1.default();
 app.set('view engine', 'ejs');
 app.set('views', path_1.default.join(__dirname, 'views'));
+app.use(helmet_1.default());
+app.use(compression_1.default());
+const accessLogStream = fs_1.default.createWriteStream(path_1.default.join(__dirname, 'access.log'), { flags: 'a' });
+app.use(morgan_1.default('combined', { stream: accessLogStream }));
 const fileStorage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
         cb(null, fileStorageController.imagePath);
@@ -107,7 +115,7 @@ fileStorageController.init();
 mailer_1.init();
 database_1.DatabaseController.init()
     .then(() => {
-    app.listen(3000, () => console.log('Node server listening!'));
+    app.listen(process.env.PORT || 3000, () => console.log('Node server listening!'));
 })
     .catch(err => console.log(err));
 //# sourceMappingURL=app.js.map
